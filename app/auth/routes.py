@@ -24,7 +24,112 @@ blacklisted_tokens = set()
 @auth_bp.route('/login', methods=['POST'])
 @validate_json_data(required_fields=['identifier', 'password'])
 def login(data):
-    """User login endpoint"""
+    """User login endpoint
+    ---
+    tags:
+      - Authentication
+    summary: Аутентификация пользователя
+    description: Вход в систему по email, телефону или студенческому ID
+    parameters:
+      - in: body
+        name: credentials
+        description: Данные для входа
+        required: true
+        schema:
+          type: object
+          required:
+            - identifier
+            - password
+          properties:
+            identifier:
+              type: string
+              description: Email, телефон (+998901234567) или студенческий ID
+              example: "admin@ttpu.uz"
+            password:
+              type: string
+              description: Пароль пользователя
+              example: "admin123"
+    responses:
+      200:
+        description: Успешная аутентификация
+        schema:
+          type: object
+          properties:
+            success:
+              type: boolean
+              example: true
+            data:
+              type: object
+              properties:
+                user:
+                  type: object
+                  properties:
+                    id:
+                      type: string
+                      example: "user_id"
+                    firstName:
+                      type: string
+                      example: "Имя"
+                    lastName:
+                      type: string
+                      example: "Фамилия"
+                    email:
+                      type: string
+                      example: "admin@ttpu.uz"
+                    role:
+                      type: string
+                      enum: ["admin", "teacher", "student"]
+                      example: "admin"
+                    avatar:
+                      type: string
+                      example: "avatar_url"
+                    lastLogin:
+                      type: string
+                      format: date-time
+                      example: "2025-01-15T08:00:00Z"
+                token:
+                  type: string
+                  description: JWT access token
+                  example: "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9..."
+                refreshToken:
+                  type: string
+                  description: JWT refresh token
+                  example: "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9..."
+      401:
+        description: Неверные учетные данные
+        schema:
+          type: object
+          properties:
+            success:
+              type: boolean
+              example: false
+            error:
+              type: object
+              properties:
+                code:
+                  type: string
+                  example: "INVALID_CREDENTIALS"
+                message:
+                  type: string
+                  example: "Invalid credentials"
+      403:
+        description: Аккаунт заблокирован
+        schema:
+          type: object
+          properties:
+            success:
+              type: boolean
+              example: false
+            error:
+              type: object
+              properties:
+                code:
+                  type: string
+                  example: "USER_BLOCKED"
+                message:
+                  type: string
+                  example: "Account is blocked: reason"
+    """
     identifier = data['identifier'].strip()
     password = data['password']
     
@@ -72,7 +177,58 @@ def login(data):
 @jwt_required()
 @validate_json_data(required_fields=['refreshToken'])
 def logout(data):
-    """User logout endpoint"""
+    """User logout endpoint
+    ---
+    tags:
+      - Authentication
+    summary: Выход из системы
+    description: Выход пользователя из системы с аннулированием токена
+    security:
+      - Bearer: []
+    parameters:
+      - in: body
+        name: logout_data
+        description: Данные для выхода
+        required: true
+        schema:
+          type: object
+          required:
+            - refreshToken
+          properties:
+            refreshToken:
+              type: string
+              description: Refresh token для аннулирования
+              example: "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9..."
+    responses:
+      200:
+        description: Успешный выход из системы
+        schema:
+          type: object
+          properties:
+            success:
+              type: boolean
+              example: true
+            message:
+              type: string
+              example: "Successfully logged out"
+      401:
+        description: Не авторизован
+        schema:
+          type: object
+          properties:
+            success:
+              type: boolean
+              example: false
+            error:
+              type: object
+              properties:
+                code:
+                  type: string
+                  example: "UNAUTHORIZED"
+                message:
+                  type: string
+                  example: "Unauthorized access"
+    """
     current_user_id = get_jwt_identity()
     jti = get_jwt()['jti']
     
@@ -97,7 +253,128 @@ def logout(data):
     'firstName', 'lastName', 'email', 'password', 'faculty', 'direction'
 ])
 def register(data):
-    """User registration endpoint"""
+    """User registration endpoint
+    ---
+    tags:
+      - Authentication
+    summary: Регистрация нового пользователя
+    description: Регистрация нового студента в системе
+    parameters:
+      - in: body
+        name: registration_data
+        description: Данные для регистрации
+        required: true
+        schema:
+          type: object
+          required:
+            - firstName
+            - lastName
+            - email
+            - password
+            - faculty
+            - direction
+          properties:
+            firstName:
+              type: string
+              description: Имя пользователя
+              example: "Алишер"
+            lastName:
+              type: string
+              description: Фамилия пользователя
+              example: "Рахмонов"
+            middleName:
+              type: string
+              description: Отчество (необязательно)
+              example: "Абдуллаевич"
+            email:
+              type: string
+              format: email
+              description: Email адрес
+              example: "a.rahmonov@student.ttpu.uz"
+            phone:
+              type: string
+              description: Номер телефона (необязательно)
+              example: "+998901234567"
+            studentId:
+              type: string
+              description: Студенческий ID (необязательно)
+              example: "12345678"
+            password:
+              type: string
+              description: Пароль (минимум 8 символов)
+              example: "password123"
+            faculty:
+              type: string
+              description: Факультет
+              example: "Информационные технологии"
+            direction:
+              type: string
+              description: Направление обучения
+              example: "Программная инженерия"
+    responses:
+      201:
+        description: Пользователь успешно зарегистрирован
+        schema:
+          type: object
+          properties:
+            success:
+              type: boolean
+              example: true
+            message:
+              type: string
+              example: "Registration successful. Please verify your email."
+            data:
+              type: object
+              properties:
+                userId:
+                  type: string
+                  example: "user_id"
+      400:
+        description: Ошибка валидации данных
+        schema:
+          type: object
+          properties:
+            success:
+              type: boolean
+              example: false
+            error:
+              type: object
+              properties:
+                code:
+                  type: string
+                  example: "VALIDATION_ERROR"
+                message:
+                  type: string
+                  example: "Validation failed"
+                details:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      field:
+                        type: string
+                        example: "email"
+                      message:
+                        type: string
+                        example: "Invalid email format"
+      409:
+        description: Пользователь уже существует
+        schema:
+          type: object
+          properties:
+            success:
+              type: boolean
+              example: false
+            error:
+              type: object
+              properties:
+                code:
+                  type: string
+                  example: "USER_EXISTS"
+                message:
+                  type: string
+                  example: "User already exists"
+    """
     # Validate input data
     errors = []
     
