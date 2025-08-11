@@ -10,7 +10,109 @@ profile_bp = Blueprint('profile', __name__)
 @profile_bp.route('', methods=['GET'])
 @jwt_required()
 def get_profile():
-    """Get current user profile"""
+    """Get current user profile
+    ---
+    tags:
+      - Profile
+    summary: Получить профиль текущего пользователя
+    description: Возвращает информацию о профиле авторизованного пользователя
+    security:
+      - Bearer: []
+    responses:
+      200:
+        description: Профиль пользователя
+        schema:
+          type: object
+          properties:
+            success:
+              type: boolean
+              example: true
+            data:
+              type: object
+              properties:
+                id:
+                  type: string
+                  example: "user_id"
+                firstName:
+                  type: string
+                  example: "Алишер"
+                lastName:
+                  type: string
+                  example: "Рахмонов"
+                middleName:
+                  type: string
+                  example: "Абдуллаевич"
+                email:
+                  type: string
+                  example: "a.rahmonov@student.ttpu.uz"
+                phone:
+                  type: string
+                  example: "+998901234567"
+                role:
+                  type: string
+                  enum: ["admin", "teacher", "student"]
+                  example: "student"
+                faculty:
+                  type: string
+                  example: "Информационные технологии"
+                direction:
+                  type: string
+                  example: "Программная инженерия"
+                studentId:
+                  type: string
+                  example: "12345678"
+                isVerified:
+                  type: boolean
+                  example: true
+                isApproved:
+                  type: boolean
+                  example: true
+                avatar:
+                  type: string
+                  example: "avatar_url"
+                createdAt:
+                  type: string
+                  format: date-time
+                  example: "2025-01-15T08:00:00Z"
+                lastLogin:
+                  type: string
+                  format: date-time
+                  example: "2025-01-15T08:00:00Z"
+      401:
+        description: Не авторизован
+        schema:
+          type: object
+          properties:
+            success:
+              type: boolean
+              example: false
+            error:
+              type: object
+              properties:
+                code:
+                  type: string
+                  example: "UNAUTHORIZED"
+                message:
+                  type: string
+                  example: "Unauthorized access"
+      404:
+        description: Пользователь не найден
+        schema:
+          type: object
+          properties:
+            success:
+              type: boolean
+              example: false
+            error:
+              type: object
+              properties:
+                code:
+                  type: string
+                  example: "USER_NOT_FOUND"
+                message:
+                  type: string
+                  example: "User not found"
+    """
     current_user_id = get_jwt_identity()
     user = User.query.get(current_user_id)
     
@@ -23,7 +125,93 @@ def get_profile():
 @jwt_required()
 @validate_json_data()
 def update_profile(data):
-    """Update current user profile"""
+    """Update current user profile
+    ---
+    tags:
+      - Profile
+    summary: Обновить профиль пользователя
+    description: Обновляет разрешенные поля профиля авторизованного пользователя
+    security:
+      - Bearer: []
+    parameters:
+      - in: body
+        name: profile_data
+        description: Данные для обновления профиля
+        required: true
+        schema:
+          type: object
+          properties:
+            firstName:
+              type: string
+              description: Имя пользователя
+              example: "Алишер"
+            lastName:
+              type: string
+              description: Фамилия пользователя
+              example: "Рахмонов"
+            middleName:
+              type: string
+              description: Отчество пользователя
+              example: "Абдуллаевич"
+            phone:
+              type: string
+              description: Номер телефона
+              example: "+998901234567"
+            faculty:
+              type: string
+              description: Факультет
+              example: "Информационные технологии"
+            direction:
+              type: string
+              description: Направление обучения
+              example: "Программная инженерия"
+    responses:
+      200:
+        description: Профиль успешно обновлен
+        schema:
+          type: object
+          properties:
+            success:
+              type: boolean
+              example: true
+            data:
+              type: object
+              description: Обновленные данные профиля
+      401:
+        description: Не авторизован
+        schema:
+          type: object
+          properties:
+            success:
+              type: boolean
+              example: false
+            error:
+              type: object
+              properties:
+                code:
+                  type: string
+                  example: "UNAUTHORIZED"
+                message:
+                  type: string
+                  example: "Unauthorized access"
+      404:
+        description: Пользователь не найден
+        schema:
+          type: object
+          properties:
+            success:
+              type: boolean
+              example: false
+            error:
+              type: object
+              properties:
+                code:
+                  type: string
+                  example: "USER_NOT_FOUND"
+                message:
+                  type: string
+                  example: "User not found"
+    """
     current_user_id = get_jwt_identity()
     user = User.query.get(current_user_id)
     

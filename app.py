@@ -2,6 +2,7 @@ from flask import Flask, jsonify
 from flask_jwt_extended import JWTManager
 from flask_cors import CORS
 from flask_mail import Mail
+from flasgger import Swagger
 from datetime import timedelta
 import os
 from dotenv import load_dotenv
@@ -47,6 +48,53 @@ def create_app():
     mail.init_app(app)
     CORS(app)
     
+    # Swagger Configuration
+    swagger_config = {
+        "headers": [],
+        "specs": [
+            {
+                "endpoint": 'apispec_1',
+                "route": '/apispec_1.json',
+                "rule_filter": lambda rule: True,  # all in
+                "model_filter": lambda tag: True,  # all in
+            }
+        ],
+        "static_url_path": "/flasgger_static",
+        "swagger_ui": True,
+        "specs_route": "/api/docs/"
+    }
+    
+    swagger_template = {
+        "swagger": "2.0",
+        "info": {
+            "title": "Turin Grad Hub API",
+            "description": "Backend API для системы управления выпускниками Turin Grad Hub - Туринский политехнический университет Ташкента (TTPU)",
+            "contact": {
+                "responsibleOrganization": "TTPU",
+                "responsibleDeveloper": "Turin Grad Hub Team"
+            },
+            "version": "1.0.0"
+        },
+        "host": "127.0.0.1:5000",
+        "basePath": "/",
+        "schemes": ["http", "https"],
+        "securityDefinitions": {
+            "Bearer": {
+                "type": "apiKey",
+                "name": "Authorization",
+                "in": "header",
+                "description": "JWT Authorization header using the Bearer scheme. Example: \"Authorization: Bearer {token}\""
+            }
+        },
+        "security": [
+            {
+                "Bearer": []
+            }
+        ]
+    }
+    
+    swagger = Swagger(app, config=swagger_config, template=swagger_template)
+    
     # Create upload directory if it doesn't exist
     os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
     
@@ -72,6 +120,92 @@ def create_app():
     app.register_blueprint(notifications_bp, url_prefix='/api/notifications')
     app.register_blueprint(dictionaries_bp, url_prefix='/api/dictionaries')
     app.register_blueprint(search_bp, url_prefix='/api/search')
+    
+    # ReDoc endpoint
+    @app.route('/api/redoc/')
+    def redoc():
+        """
+        ReDoc documentation endpoint
+        ---
+        tags:
+          - Documentation
+        responses:
+          200:
+            description: ReDoc documentation interface
+        """
+        return '''
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <title>Turin Grad Hub API - ReDoc</title>
+            <meta charset="utf-8"/>
+            <meta name="viewport" content="width=device-width, initial-scale=1">
+            <style>
+                body { 
+                    margin: 0; 
+                    padding: 0; 
+                    font-family: Arial, sans-serif;
+                }
+                #redoc-container { 
+                    min-height: 100vh; 
+                }
+                .loading {
+                    text-align: center;
+                    padding: 50px;
+                    font-size: 18px;
+                    color: #666;
+                }
+            </style>
+        </head>
+        <body>
+            <div id="redoc-container">
+                <div class="loading">
+                    <h2>Turin Grad Hub API - ReDoc Documentation</h2>
+                    <p>Loading API documentation...</p>
+                    <p>If this doesn't load automatically, you can access the OpenAPI spec directly: 
+                       <a href="/apispec_1.json">JSON specification</a>
+                    </p>
+                    <p>Or use the <a href="/api/docs/">Swagger UI interface</a></p>
+                </div>
+            </div>
+            <script>
+                // Fallback to show spec link if ReDoc fails to load
+                setTimeout(function() {
+                    if (!window.Redoc) {
+                        document.getElementById('redoc-container').innerHTML = 
+                            '<div class="loading">' +
+                            '<h2>Turin Grad Hub API Documentation</h2>' +
+                            '<p>ReDoc interface is not available in this environment.</p>' +
+                            '<p>Please use:</p>' +
+                            '<ul style="text-align: left; display: inline-block;">' +
+                            '<li><a href="/api/docs/">Swagger UI interface</a> - Interactive documentation</li>' +
+                            '<li><a href="/apispec_1.json">OpenAPI JSON specification</a> - Raw API spec</li>' +
+                            '</ul>' +
+                            '</div>';
+                    }
+                }, 3000);
+            </script>
+            <script src="https://unpkg.com/redoc@2.0.0/bundles/redoc.standalone.js"></script>
+            <script>
+                if (window.Redoc) {
+                    Redoc.init('/apispec_1.json', {
+                        theme: {
+                            colors: {
+                                primary: {
+                                    main: '#1976d2'
+                                }
+                            },
+                            typography: {
+                                fontSize: '14px',
+                                fontFamily: 'Arial, sans-serif'
+                            }
+                        }
+                    }, document.getElementById('redoc-container'));
+                }
+            </script>
+        </body>
+        </html>
+        '''
     
     # Error handlers
     @app.errorhandler(400)
