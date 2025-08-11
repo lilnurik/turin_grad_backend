@@ -58,6 +58,9 @@ def create_app():
     from app.profile.routes import profile_bp
     from app.admin.routes import admin_bp
     from app.system.routes import system_bp
+    from app.notifications.routes import notifications_bp
+    from app.dictionaries.routes import dictionaries_bp
+    from app.search.routes import search_bp
     
     app.register_blueprint(auth_bp, url_prefix='/api/auth')
     app.register_blueprint(users_bp, url_prefix='/api')
@@ -66,6 +69,9 @@ def create_app():
     app.register_blueprint(profile_bp, url_prefix='/api/profile')
     app.register_blueprint(admin_bp, url_prefix='/api/admin')
     app.register_blueprint(system_bp, url_prefix='/api')
+    app.register_blueprint(notifications_bp, url_prefix='/api/notifications')
+    app.register_blueprint(dictionaries_bp, url_prefix='/api/dictionaries')
+    app.register_blueprint(search_bp, url_prefix='/api/search')
     
     # Error handlers
     @app.errorhandler(400)
