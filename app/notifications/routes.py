@@ -11,7 +11,85 @@ notifications_bp = Blueprint('notifications', __name__)
 @notifications_bp.route('', methods=['GET'])
 @jwt_required()
 def get_notifications():
-    """Get user notifications"""
+    """Get user notifications
+    ---
+    tags:
+      - Notifications
+    summary: Получить уведомления пользователя
+    description: Возвращает пагинированный список уведомлений текущего пользователя
+    security:
+      - Bearer: []
+    parameters:
+      - in: query
+        name: page
+        type: integer
+        description: Номер страницы для пагинации
+        default: 1
+      - in: query
+        name: limit
+        type: integer
+        description: Количество элементов на странице
+        default: 10
+      - in: query
+        name: read
+        type: boolean
+        description: Фильтр по статусу прочтения
+      - in: query
+        name: type
+        type: string
+        description: Фильтр по типу уведомления
+        enum: [VERIFICATION_REQUEST, ACCOUNT_VERIFIED, ACCOUNT_BLOCKED, PASSWORD_RESET, SYSTEM_UPDATE, WELCOME, ACHIEVEMENT]
+    responses:
+      200:
+        description: Уведомления успешно получены
+        schema:
+          type: object
+          properties:
+            success:
+              type: boolean
+              example: true
+            data:
+              type: object
+              properties:
+                items:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      id:
+                        type: string
+                      type:
+                        type: string
+                        example: "ACCOUNT_VERIFIED"
+                      title:
+                        type: string
+                        example: "Аккаунт верифицирован"
+                      message:
+                        type: string
+                        example: "Ваш аккаунт успешно верифицирован администратором"
+                      read:
+                        type: boolean
+                        example: false
+                      readAt:
+                        type: string
+                        format: date-time
+                      createdAt:
+                        type: string
+                        format: date-time
+                pagination:
+                  type: object
+                  properties:
+                    page:
+                      type: integer
+                    limit:
+                      type: integer
+                    total:
+                      type: integer
+                    totalPages:
+                      type: integer
+      401:
+        description: Не авторизован
+    """
     current_user_id = get_jwt_identity()
     page, limit = get_pagination_params()
     
@@ -35,7 +113,54 @@ def get_notifications():
 @notifications_bp.route('/<notification_id>/read', methods=['PATCH'])
 @jwt_required()
 def mark_notification_read(notification_id):
-    """Mark notification as read"""
+    """Mark notification as read
+    ---
+    tags:
+      - Notifications
+    summary: Отметить уведомление как прочитанное
+    description: Помечает указанное уведомление пользователя как прочитанное
+    security:
+      - Bearer: []
+    parameters:
+      - in: path
+        name: notification_id
+        type: string
+        required: true
+        description: ID уведомления
+    responses:
+      200:
+        description: Уведомление успешно отмечено как прочитанное
+        schema:
+          type: object
+          properties:
+            success:
+              type: boolean
+              example: true
+            data:
+              type: object
+              properties:
+                id:
+                  type: string
+                type:
+                  type: string
+                title:
+                  type: string
+                message:
+                  type: string
+                read:
+                  type: boolean
+                  example: true
+                readAt:
+                  type: string
+                  format: date-time
+                createdAt:
+                  type: string
+                  format: date-time
+      401:
+        description: Не авторизован
+      404:
+        description: Уведомление не найдено
+    """
     current_user_id = get_jwt_identity()
     
     notification = Notification.query.filter_by(
@@ -56,7 +181,29 @@ def mark_notification_read(notification_id):
 @notifications_bp.route('/mark-all-read', methods=['PATCH'])
 @jwt_required()
 def mark_all_notifications_read():
-    """Mark all notifications as read"""
+    """Mark all notifications as read
+    ---
+    tags:
+      - Notifications
+    summary: Отметить все уведомления как прочитанные
+    description: Помечает все непрочитанные уведомления пользователя как прочитанные
+    security:
+      - Bearer: []
+    responses:
+      200:
+        description: Все уведомления успешно отмечены как прочитанные
+        schema:
+          type: object
+          properties:
+            success:
+              type: boolean
+              example: true
+            message:
+              type: string
+              example: "Marked 5 notifications as read"
+      401:
+        description: Не авторизован
+    """
     current_user_id = get_jwt_identity()
     
     unread_notifications = Notification.query.filter_by(

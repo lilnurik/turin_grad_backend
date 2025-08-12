@@ -242,7 +242,53 @@ def update_profile(data):
 @profile_bp.route('/work-experience', methods=['GET'])
 @jwt_required()
 def get_work_experience():
-    """Get user work experience"""
+    """Get user work experience
+    ---
+    tags:
+      - Profile
+    summary: Получить опыт работы пользователя
+    description: Возвращает список всего опыта работы текущего пользователя
+    security:
+      - Bearer: []
+    responses:
+      200:
+        description: Опыт работы успешно получен
+        schema:
+          type: object
+          properties:
+            success:
+              type: boolean
+              example: true
+            data:
+              type: array
+              items:
+                type: object
+                properties:
+                  id:
+                    type: string
+                  company:
+                    type: string
+                    example: "ООО 'Технологии'"
+                  position:
+                    type: string
+                    example: "Разработчик"
+                  startDate:
+                    type: string
+                    format: date
+                    example: "2022-01-15"
+                  endDate:
+                    type: string
+                    format: date
+                    example: "2023-06-30"
+                  description:
+                    type: string
+                    example: "Разработка веб-приложений на Python"
+                  createdAt:
+                    type: string
+                    format: date-time
+      401:
+        description: Не авторизован
+    """
     current_user_id = get_jwt_identity()
     experiences = WorkExperience.query.filter_by(user_id=current_user_id).all()
     
@@ -252,7 +298,85 @@ def get_work_experience():
 @jwt_required()
 @validate_json_data(required_fields=['company', 'position', 'startDate'])
 def add_work_experience(data):
-    """Add work experience"""
+    """Add work experience
+    ---
+    tags:
+      - Profile
+    summary: Добавить опыт работы
+    description: Добавляет новый опыт работы для текущего пользователя
+    security:
+      - Bearer: []
+    parameters:
+      - in: body
+        name: experience_data
+        description: Данные опыта работы
+        required: true
+        schema:
+          type: object
+          required:
+            - company
+            - position
+            - startDate
+          properties:
+            company:
+              type: string
+              description: Название компании
+              example: "ООО 'Технологии'"
+            position:
+              type: string
+              description: Должность
+              example: "Разработчик"
+            startDate:
+              type: string
+              format: date
+              description: Дата начала работы
+              example: "2022-01-15"
+            endDate:
+              type: string
+              format: date
+              description: Дата окончания работы (если работа завершена)
+              example: "2023-06-30"
+            description:
+              type: string
+              description: Описание обязанностей и достижений
+              example: "Разработка веб-приложений на Python и JavaScript"
+    responses:
+      201:
+        description: Опыт работы успешно добавлен
+        schema:
+          type: object
+          properties:
+            success:
+              type: boolean
+              example: true
+            data:
+              type: object
+              properties:
+                id:
+                  type: string
+                company:
+                  type: string
+                position:
+                  type: string
+                startDate:
+                  type: string
+                  format: date
+                endDate:
+                  type: string
+                  format: date
+                description:
+                  type: string
+                createdAt:
+                  type: string
+                  format: date-time
+            message:
+              type: string
+              example: "Work experience added successfully"
+      400:
+        description: Ошибка валидации данных
+      401:
+        description: Не авторизован
+    """
     current_user_id = get_jwt_identity()
     
     from datetime import datetime
@@ -282,7 +406,48 @@ def add_work_experience(data):
 @profile_bp.route('/education-goals', methods=['GET'])
 @jwt_required()
 def get_education_goals():
-    """Get user education goals"""
+    """Get user education goals
+    ---
+    tags:
+      - Profile
+    summary: Получить образовательные цели пользователя
+    description: Возвращает список всех образовательных целей текущего пользователя
+    security:
+      - Bearer: []
+    responses:
+      200:
+        description: Образовательные цели успешно получены
+        schema:
+          type: object
+          properties:
+            success:
+              type: boolean
+              example: true
+            data:
+              type: array
+              items:
+                type: object
+                properties:
+                  id:
+                    type: string
+                  year:
+                    type: integer
+                    example: 2024
+                  goal:
+                    type: string
+                    example: "Изучить машинное обучение"
+                  description:
+                    type: string
+                    example: "Освоить основы ML и применить их в проектах"
+                  completed:
+                    type: boolean
+                    example: false
+                  createdAt:
+                    type: string
+                    format: date-time
+      401:
+        description: Не авторизован
+    """
     current_user_id = get_jwt_identity()
     goals = EducationGoal.query.filter_by(user_id=current_user_id).all()
     
@@ -292,7 +457,71 @@ def get_education_goals():
 @jwt_required()
 @validate_json_data(required_fields=['year', 'goal'])
 def add_education_goal(data):
-    """Add education goal"""
+    """Add education goal
+    ---
+    tags:
+      - Profile
+    summary: Добавить образовательную цель
+    description: Добавляет новую образовательную цель для текущего пользователя
+    security:
+      - Bearer: []
+    parameters:
+      - in: body
+        name: goal_data
+        description: Данные образовательной цели
+        required: true
+        schema:
+          type: object
+          required:
+            - year
+            - goal
+          properties:
+            year:
+              type: integer
+              description: Год достижения цели
+              example: 2024
+            goal:
+              type: string
+              description: Описание цели
+              example: "Изучить машинное обучение"
+            description:
+              type: string
+              description: Подробное описание цели
+              example: "Освоить основы ML, пройти курсы и применить знания в проектах"
+    responses:
+      201:
+        description: Образовательная цель успешно добавлена
+        schema:
+          type: object
+          properties:
+            success:
+              type: boolean
+              example: true
+            data:
+              type: object
+              properties:
+                id:
+                  type: string
+                year:
+                  type: integer
+                goal:
+                  type: string
+                description:
+                  type: string
+                completed:
+                  type: boolean
+                  example: false
+                createdAt:
+                  type: string
+                  format: date-time
+            message:
+              type: string
+              example: "Education goal added successfully"
+      400:
+        description: Ошибка валидации данных
+      401:
+        description: Не авторизован
+    """
     current_user_id = get_jwt_identity()
     
     goal = EducationGoal(

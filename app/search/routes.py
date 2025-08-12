@@ -10,7 +10,93 @@ search_bp = Blueprint('search', __name__)
 @search_bp.route('', methods=['GET'])
 @jwt_required()
 def global_search():
-    """Global search across the system"""
+    """Global search across the system
+    ---
+    tags:
+      - Search
+    summary: Глобальный поиск по системе
+    description: Выполняет поиск по пользователям и компаниям в зависимости от указанного типа
+    security:
+      - Bearer: []
+    parameters:
+      - in: query
+        name: q
+        type: string
+        required: true
+        description: Поисковый запрос
+      - in: query
+        name: type
+        type: string
+        enum: [all, users, companies]
+        default: all
+        description: Тип поиска
+      - in: query
+        name: page
+        type: integer
+        description: Номер страницы для пагинации (только при конкретном типе)
+        default: 1
+      - in: query
+        name: limit
+        type: integer
+        description: Количество элементов на странице (только при конкретном типе)
+        default: 10
+    responses:
+      200:
+        description: Результаты поиска
+        schema:
+          type: object
+          properties:
+            success:
+              type: boolean
+              example: true
+            data:
+              type: object
+              properties:
+                users:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      id:
+                        type: string
+                      firstName:
+                        type: string
+                      lastName:
+                        type: string
+                      email:
+                        type: string
+                      role:
+                        type: string
+                      faculty:
+                        type: string
+                companies:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      id:
+                        type: string
+                      name:
+                        type: string
+                      website:
+                        type: string
+                      industry:
+                        type: string
+                pagination:
+                  type: object
+                  description: Пагинация (только при поиске конкретного типа)
+                  properties:
+                    page:
+                      type: integer
+                    limit:
+                      type: integer
+                    total:
+                      type: integer
+                    totalPages:
+                      type: integer
+      401:
+        description: Не авторизован
+    """
     q = request.args.get('q', '').strip()
     if not q:
         return success_response({'users': [], 'companies': []})
@@ -53,7 +139,107 @@ def global_search():
 @search_bp.route('/students', methods=['GET'])
 @jwt_required()
 def search_students():
-    """Search students with advanced filters"""
+    """Search students with advanced filters
+    ---
+    tags:
+      - Search
+    summary: Расширенный поиск студентов
+    description: Выполняет поиск студентов с возможностью применения различных фильтров
+    security:
+      - Bearer: []
+    parameters:
+      - in: query
+        name: q
+        type: string
+        description: Поисковый запрос по имени, фамилии, email или студенческому ID
+      - in: query
+        name: faculty
+        type: string
+        description: Фильтр по факультету
+      - in: query
+        name: direction
+        type: string
+        description: Фильтр по направлению обучения
+      - in: query
+        name: admissionYear
+        type: integer
+        description: Фильтр по году поступления
+      - in: query
+        name: graduationYear
+        type: integer
+        description: Фильтр по году выпуска
+      - in: query
+        name: page
+        type: integer
+        description: Номер страницы для пагинации
+        default: 1
+      - in: query
+        name: limit
+        type: integer
+        description: Количество элементов на странице
+        default: 10
+    responses:
+      200:
+        description: Результаты поиска студентов
+        schema:
+          type: object
+          properties:
+            success:
+              type: boolean
+              example: true
+            data:
+              type: object
+              properties:
+                items:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      id:
+                        type: string
+                      firstName:
+                        type: string
+                        example: "Алиш"
+                      lastName:
+                        type: string
+                        example: "Рахмонов"
+                      email:
+                        type: string
+                        example: "a.rahmonov@student.ttpu.uz"
+                      studentId:
+                        type: string
+                        example: "20230001"
+                      faculty:
+                        type: string
+                        example: "Engineering"
+                      direction:
+                        type: string
+                        example: "Computer Science"
+                      admissionYear:
+                        type: integer
+                        example: 2020
+                      graduationYear:
+                        type: integer
+                        example: 2024
+                      year:
+                        type: integer
+                        example: 3
+                      isVerified:
+                        type: boolean
+                pagination:
+                  type: object
+                  properties:
+                    page:
+                      type: integer
+                    limit:
+                      type: integer
+                    total:
+                      type: integer
+                    totalPages:
+                      type: integer
+      401:
+        description: Не авторизован
+    """
     page, limit = get_pagination_params()
     
     # Base query for students
