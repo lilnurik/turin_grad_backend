@@ -14,7 +14,90 @@ admin_bp = Blueprint('admin', __name__)
 @jwt_required()
 @role_required('admin')
 def get_users(current_user):
-    """Get list of all users with filtering"""
+    """Get list of all users with filtering
+    ---
+    tags:
+      - Admin
+    summary: Получить список всех пользователей
+    description: Возвращает пагинированный список всех пользователей с возможностью фильтрации
+    security:
+      - Bearer: []
+    parameters:
+      - in: query
+        name: page
+        type: integer
+        description: Номер страницы для пагинации
+        default: 1
+      - in: query
+        name: limit
+        type: integer
+        description: Количество элементов на странице
+        default: 10
+      - in: query
+        name: search
+        type: string
+        description: Поиск по имени, фамилии, email или студенческому ID
+      - in: query
+        name: role
+        type: string
+        enum: [admin, teacher, student]
+        description: Фильтр по роли пользователя
+      - in: query
+        name: faculty
+        type: string
+        description: Фильтр по факультету
+      - in: query
+        name: verified
+        type: boolean
+        description: Фильтр по статусу верификации
+    responses:
+      200:
+        description: Список пользователей успешно получен
+        schema:
+          type: object
+          properties:
+            success:
+              type: boolean
+              example: true
+            data:
+              type: object
+              properties:
+                items:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      id:
+                        type: string
+                      firstName:
+                        type: string
+                      lastName:
+                        type: string
+                      email:
+                        type: string
+                      role:
+                        type: string
+                      faculty:
+                        type: string
+                      isVerified:
+                        type: boolean
+                      createdAt:
+                        type: string
+                        format: date-time
+                pagination:
+                  type: object
+                  properties:
+                    page:
+                      type: integer
+                    limit:
+                      type: integer
+                    total:
+                      type: integer
+                    totalPages:
+                      type: integer
+      403:
+        description: Доступ запрещен (только для администраторов)
+    """
     page, limit = get_pagination_params()
     
     # Base query
@@ -54,7 +137,67 @@ def get_users(current_user):
 @jwt_required()
 @role_required('admin')
 def get_user(current_user, user_id):
-    """Get detailed information about a user"""
+    """Get detailed information about a user
+    ---
+    tags:
+      - Admin
+    summary: Получить детальную информацию о пользователе
+    description: Возвращает подробную информацию о пользователе по ID
+    security:
+      - Bearer: []
+    parameters:
+      - in: path
+        name: user_id
+        type: string
+        required: true
+        description: ID пользователя
+    responses:
+      200:
+        description: Информация о пользователе успешно получена
+        schema:
+          type: object
+          properties:
+            success:
+              type: boolean
+              example: true
+            data:
+              type: object
+              properties:
+                id:
+                  type: string
+                firstName:
+                  type: string
+                lastName:
+                  type: string
+                email:
+                  type: string
+                phone:
+                  type: string
+                role:
+                  type: string
+                faculty:
+                  type: string
+                studentId:
+                  type: string
+                isVerified:
+                  type: boolean
+                isBlocked:
+                  type: boolean
+                emailVerified:
+                  type: boolean
+                phoneVerified:
+                  type: boolean
+                createdAt:
+                  type: string
+                  format: date-time
+                lastLogin:
+                  type: string
+                  format: date-time
+      403:
+        description: Доступ запрещен (только для администраторов)
+      404:
+        description: Пользователь не найден
+    """
     user = User.query.get(user_id)
     if not user:
         return error_response('USER_NOT_FOUND', 'User not found', status_code=404)
@@ -68,7 +211,100 @@ def get_user(current_user, user_id):
     'firstName', 'lastName', 'email', 'role', 'password'
 ])
 def create_user(current_user, data):
-    """Create a new user (admin only)"""
+    """Create a new user (admin only)
+    ---
+    tags:
+      - Admin
+    summary: Создать нового пользователя
+    description: Создает нового пользователя в системе (только для администраторов)
+    security:
+      - Bearer: []
+    parameters:
+      - in: body
+        name: user_data
+        description: Данные нового пользователя
+        required: true
+        schema:
+          type: object
+          required:
+            - firstName
+            - lastName
+            - email
+            - role
+            - password
+          properties:
+            firstName:
+              type: string
+              description: Имя пользователя
+              example: "Иван"
+            lastName:
+              type: string
+              description: Фамилия пользователя
+              example: "Иванов"
+            email:
+              type: string
+              description: Email адрес
+              example: "ivan.ivanov@ttpu.uz"
+            phone:
+              type: string
+              description: Номер телефона в формате +998XXXXXXXXX
+              example: "+998901234567"
+            studentId:
+              type: string
+              description: Студенческий ID (8 цифр, только для студентов)
+              example: "12345678"
+            role:
+              type: string
+              enum: [admin, teacher, student]
+              description: Роль пользователя
+              example: "student"
+            password:
+              type: string
+              description: Пароль (минимум 8 символов)
+              example: "password123"
+            faculty:
+              type: string
+              description: Факультет
+              example: "Engineering"
+            direction:
+              type: string
+              description: Направление обучения
+              example: "Computer Science"
+    responses:
+      201:
+        description: Пользователь успешно создан
+        schema:
+          type: object
+          properties:
+            success:
+              type: boolean
+              example: true
+            data:
+              type: object
+              properties:
+                id:
+                  type: string
+                firstName:
+                  type: string
+                lastName:
+                  type: string
+                email:
+                  type: string
+                role:
+                  type: string
+                createdAt:
+                  type: string
+                  format: date-time
+            message:
+              type: string
+              example: "User created successfully"
+      400:
+        description: Ошибка валидации данных
+      403:
+        description: Доступ запрещен (только для администраторов)
+      409:
+        description: Пользователь с таким email уже существует
+    """
     # Validate input data
     errors = []
     
@@ -152,7 +388,94 @@ def create_user(current_user, data):
 @role_required('admin')
 @validate_json_data()
 def update_user(current_user, data, user_id):
-    """Update user information"""
+    """Update user information
+    ---
+    tags:
+      - Admin
+    summary: Обновить информацию пользователя
+    description: Обновляет информацию о пользователе (только для администраторов)
+    security:
+      - Bearer: []
+    parameters:
+      - in: path
+        name: user_id
+        type: string
+        required: true
+        description: ID пользователя
+      - in: body
+        name: user_data
+        description: Данные для обновления пользователя
+        required: true
+        schema:
+          type: object
+          properties:
+            firstName:
+              type: string
+              description: Имя пользователя
+              example: "Иван"
+            lastName:
+              type: string
+              description: Фамилия пользователя
+              example: "Иванов"
+            email:
+              type: string
+              description: Email адрес
+              example: "ivan.ivanov@ttpu.uz"
+            phone:
+              type: string
+              description: Номер телефона в формате +998XXXXXXXXX
+              example: "+998901234567"
+            studentId:
+              type: string
+              description: Студенческий ID (8 цифр)
+              example: "12345678"
+            faculty:
+              type: string
+              description: Факультет
+              example: "Engineering"
+            direction:
+              type: string
+              description: Направление обучения
+              example: "Computer Science"
+    responses:
+      200:
+        description: Информация пользователя успешно обновлена
+        schema:
+          type: object
+          properties:
+            success:
+              type: boolean
+              example: true
+            data:
+              type: object
+              properties:
+                id:
+                  type: string
+                firstName:
+                  type: string
+                lastName:
+                  type: string
+                email:
+                  type: string
+                phone:
+                  type: string
+                role:
+                  type: string
+                updatedAt:
+                  type: string
+                  format: date-time
+            message:
+              type: string
+              example: "User updated successfully"
+      400:
+        description: Ошибка валидации данных
+      403:
+        description: Доступ запрещен (только для администраторов)
+      404:
+        description: Пользователь не найден
+      409:
+        description: Email или студенческий ID уже используется
+    """
     user = User.query.get(user_id)
     if not user:
         return error_response('USER_NOT_FOUND', 'User not found', status_code=404)
@@ -244,7 +567,39 @@ def update_user(current_user, data, user_id):
 @jwt_required()
 @role_required('admin')
 def delete_user(current_user, user_id):
-    """Delete a user"""
+    """Delete a user
+    ---
+    tags:
+      - Admin
+    summary: Удалить пользователя
+    description: Удаляет пользователя из системы (только для администраторов)
+    security:
+      - Bearer: []
+    parameters:
+      - in: path
+        name: user_id
+        type: string
+        required: true
+        description: ID пользователя для удаления
+    responses:
+      200:
+        description: Пользователь успешно удален
+        schema:
+          type: object
+          properties:
+            success:
+              type: boolean
+              example: true
+            message:
+              type: string
+              example: "User deleted successfully"
+      403:
+        description: Доступ запрещен (только для администраторов)
+      404:
+        description: Пользователь не найден
+      400:
+        description: Нельзя удалить самого себя
+    """
     user = User.query.get(user_id)
     if not user:
         return error_response('USER_NOT_FOUND', 'User not found', status_code=404)
@@ -275,7 +630,56 @@ def delete_user(current_user, user_id):
 @jwt_required()
 @role_required('admin')
 def verify_user(current_user, user_id):
-    """Verify a user account"""
+    """Verify a user account
+    ---
+    tags:
+      - Admin
+    summary: Верифицировать аккаунт пользователя
+    description: Административная верификация аккаунта пользователя
+    security:
+      - Bearer: []
+    parameters:
+      - in: path
+        name: user_id
+        type: string
+        required: true
+        description: ID пользователя для верификации
+    responses:
+      200:
+        description: Пользователь успешно верифицирован
+        schema:
+          type: object
+          properties:
+            success:
+              type: boolean
+              example: true
+            data:
+              type: object
+              properties:
+                id:
+                  type: string
+                firstName:
+                  type: string
+                lastName:
+                  type: string
+                email:
+                  type: string
+                isVerified:
+                  type: boolean
+                  example: true
+                verifiedAt:
+                  type: string
+                  format: date-time
+            message:
+              type: string
+              example: "User verified successfully"
+      403:
+        description: Доступ запрещен (только для администраторов)
+      404:
+        description: Пользователь не найден
+      400:
+        description: Пользователь уже верифицирован
+    """
     user = User.query.get(user_id)
     if not user:
         return error_response('USER_NOT_FOUND', 'User not found', status_code=404)
@@ -316,7 +720,73 @@ def verify_user(current_user, user_id):
 @role_required('admin')
 @validate_json_data(required_fields=['blocked'])
 def block_user(current_user, data, user_id):
-    """Block or unblock a user"""
+    """Block or unblock a user
+    ---
+    tags:
+      - Admin
+    summary: Заблокировать или разблокировать пользователя
+    description: Административная блокировка или разблокировка аккаунта пользователя
+    security:
+      - Bearer: []
+    parameters:
+      - in: path
+        name: user_id
+        type: string
+        required: true
+        description: ID пользователя
+      - in: body
+        name: block_data
+        description: Данные для блокировки/разблокировки
+        required: true
+        schema:
+          type: object
+          required:
+            - blocked
+          properties:
+            blocked:
+              type: boolean
+              description: true для блокировки, false для разблокировки
+              example: true
+            reason:
+              type: string
+              description: Причина блокировки (опционально)
+              example: "Нарушение правил"
+    responses:
+      200:
+        description: Статус блокировки пользователя успешно изменен
+        schema:
+          type: object
+          properties:
+            success:
+              type: boolean
+              example: true
+            data:
+              type: object
+              properties:
+                id:
+                  type: string
+                firstName:
+                  type: string
+                lastName:
+                  type: string
+                email:
+                  type: string
+                isBlocked:
+                  type: boolean
+                  example: true
+                blockedAt:
+                  type: string
+                  format: date-time
+            message:
+              type: string
+              example: "User blocked successfully"
+      403:
+        description: Доступ запрещен (только для администраторов)
+      404:
+        description: Пользователь не найден
+      400:
+        description: Нельзя заблокировать самого себя
+    """
     user = User.query.get(user_id)
     if not user:
         return error_response('USER_NOT_FOUND', 'User not found', status_code=404)
@@ -375,7 +845,89 @@ def block_user(current_user, data, user_id):
 @jwt_required()
 @role_required('admin')
 def get_activity_logs(current_user):
-    """Get activity logs"""
+    """Get activity logs
+    ---
+    tags:
+      - Admin
+    summary: Получить журнал активности
+    description: Возвращает пагинированный список всех действий пользователей в системе
+    security:
+      - Bearer: []
+    parameters:
+      - in: query
+        name: page
+        type: integer
+        description: Номер страницы для пагинации
+        default: 1
+      - in: query
+        name: limit
+        type: integer
+        description: Количество элементов на странице
+        default: 10
+      - in: query
+        name: user_id
+        type: string
+        description: Фильтр по ID пользователя
+      - in: query
+        name: action
+        type: string
+        description: Фильтр по типу действия
+        enum: [USER_LOGIN, USER_LOGOUT, USER_REGISTERED, EMAIL_VERIFIED, PHONE_VERIFIED, PASSWORD_RESET_COMPLETED, USER_CREATED, USER_UPDATED, USER_DELETED, USER_VERIFIED, USER_BLOCKED, USER_UNBLOCKED]
+    responses:
+      200:
+        description: Журнал активности успешно получен
+        schema:
+          type: object
+          properties:
+            success:
+              type: boolean
+              example: true
+            data:
+              type: object
+              properties:
+                items:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      id:
+                        type: string
+                      userId:
+                        type: string
+                      action:
+                        type: string
+                      details:
+                        type: string
+                      ipAddress:
+                        type: string
+                      userAgent:
+                        type: string
+                      createdAt:
+                        type: string
+                        format: date-time
+                      user:
+                        type: object
+                        properties:
+                          firstName:
+                            type: string
+                          lastName:
+                            type: string
+                          email:
+                            type: string
+                pagination:
+                  type: object
+                  properties:
+                    page:
+                      type: integer
+                    limit:
+                      type: integer
+                    total:
+                      type: integer
+                    totalPages:
+                      type: integer
+      403:
+        description: Доступ запрещен (только для администраторов)
+    """
     page, limit = get_pagination_params()
     
     # Base query

@@ -458,7 +458,56 @@ def register(data):
 @auth_bp.route('/verify-email', methods=['POST'])
 @validate_json_data(required_fields=['token'])
 def verify_email(data):
-    """Email verification endpoint"""
+    """Email verification endpoint
+    ---
+    tags:
+      - Authentication
+    summary: Верификация email адреса
+    description: Подтверждение email адреса пользователя с помощью токена верификации
+    parameters:
+      - in: body
+        name: verification_data
+        description: Данные для верификации email
+        required: true
+        schema:
+          type: object
+          required:
+            - token
+          properties:
+            token:
+              type: string
+              description: Токен верификации email
+              example: "abc123def456"
+    responses:
+      200:
+        description: Email успешно верифицирован
+        schema:
+          type: object
+          properties:
+            success:
+              type: boolean
+              example: true
+            message:
+              type: string
+              example: "Email verified successfully"
+      400:
+        description: Неверный или просроченный токен
+        schema:
+          type: object
+          properties:
+            success:
+              type: boolean
+              example: false
+            error:
+              type: object
+              properties:
+                code:
+                  type: string
+                  example: "INVALID_TOKEN"
+                message:
+                  type: string
+                  example: "Invalid or expired verification token"
+    """
     token = data['token']
     
     user = User.query.filter_by(email_verification_token=token).first()
@@ -485,7 +534,73 @@ def verify_email(data):
 @auth_bp.route('/send-sms', methods=['POST'])
 @validate_json_data(required_fields=['phone'])
 def send_sms(data):
-    """Send SMS verification code"""
+    """Send SMS verification code
+    ---
+    tags:
+      - Authentication
+    summary: Отправка SMS кода верификации
+    description: Отправляет SMS код верификации на указанный номер телефона
+    parameters:
+      - in: body
+        name: sms_data
+        description: Данные для отправки SMS
+        required: true
+        schema:
+          type: object
+          required:
+            - phone
+          properties:
+            phone:
+              type: string
+              description: Номер телефона в формате +998XXXXXXXXX
+              example: "+998901234567"
+    responses:
+      200:
+        description: SMS код успешно отправлен
+        schema:
+          type: object
+          properties:
+            success:
+              type: boolean
+              example: true
+            message:
+              type: string
+              example: "SMS code sent successfully"
+      400:
+        description: Неверный формат номера телефона
+        schema:
+          type: object
+          properties:
+            success:
+              type: boolean
+              example: false
+            error:
+              type: object
+              properties:
+                code:
+                  type: string
+                  example: "INVALID_PHONE"
+                message:
+                  type: string
+                  example: "Invalid phone number format"
+      500:
+        description: Ошибка отправки SMS
+        schema:
+          type: object
+          properties:
+            success:
+              type: boolean
+              example: false
+            error:
+              type: object
+              properties:
+                code:
+                  type: string
+                  example: "SMS_SEND_FAILED"
+                message:
+                  type: string
+                  example: "Failed to send SMS code"
+    """
     phone = data['phone']
     
     if not validate_phone_format(phone):
@@ -503,7 +618,61 @@ def send_sms(data):
 @auth_bp.route('/verify-sms', methods=['POST'])
 @validate_json_data(required_fields=['phone', 'code'])
 def verify_sms(data):
-    """Verify SMS code"""
+    """Verify SMS code
+    ---
+    tags:
+      - Authentication
+    summary: Верификация SMS кода
+    description: Проверяет SMS код верификации для указанного номера телефона
+    parameters:
+      - in: body
+        name: verification_data
+        description: Данные для верификации SMS кода
+        required: true
+        schema:
+          type: object
+          required:
+            - phone
+            - code
+          properties:
+            phone:
+              type: string
+              description: Номер телефона в формате +998XXXXXXXXX
+              example: "+998901234567"
+            code:
+              type: string
+              description: SMS код верификации
+              example: "123456"
+    responses:
+      200:
+        description: SMS код успешно верифицирован
+        schema:
+          type: object
+          properties:
+            success:
+              type: boolean
+              example: true
+            message:
+              type: string
+              example: "Phone verified successfully"
+      400:
+        description: Неверный или просроченный SMS код
+        schema:
+          type: object
+          properties:
+            success:
+              type: boolean
+              example: false
+            error:
+              type: object
+              properties:
+                code:
+                  type: string
+                  example: "INVALID_CODE"
+                message:
+                  type: string
+                  example: "Invalid or expired SMS code"
+    """
     phone = data['phone']
     code = data['code']
     
@@ -532,7 +701,48 @@ def verify_sms(data):
 @auth_bp.route('/refresh', methods=['POST'])
 @jwt_required(refresh=True)
 def refresh():
-    """Refresh access token"""
+    """Refresh access token
+    ---
+    tags:
+      - Authentication
+    summary: Обновление access токена
+    description: Генерирует новый access токен используя refresh токен
+    security:
+      - Bearer: []
+    responses:
+      200:
+        description: Новый access токен успешно создан
+        schema:
+          type: object
+          properties:
+            success:
+              type: boolean
+              example: true
+            data:
+              type: object
+              properties:
+                token:
+                  type: string
+                  description: Новый JWT access токен
+                  example: "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9..."
+      401:
+        description: Пользователь не найден или заблокирован
+        schema:
+          type: object
+          properties:
+            success:
+              type: boolean
+              example: false
+            error:
+              type: object
+              properties:
+                code:
+                  type: string
+                  example: "USER_NOT_FOUND"
+                message:
+                  type: string
+                  example: "User not found or blocked"
+    """
     current_user_id = get_jwt_identity()
     
     # Check if user still exists and is not blocked
@@ -549,7 +759,39 @@ def refresh():
 @auth_bp.route('/forgot-password', methods=['POST'])
 @validate_json_data(required_fields=['identifier'])
 def forgot_password(data):
-    """Request password reset"""
+    """Request password reset
+    ---
+    tags:
+      - Authentication
+    summary: Запрос сброса пароля
+    description: Отправляет email с ссылкой для сброса пароля
+    parameters:
+      - in: body
+        name: reset_request
+        description: Данные для запроса сброса пароля
+        required: true
+        schema:
+          type: object
+          required:
+            - identifier
+          properties:
+            identifier:
+              type: string
+              description: Email или номер телефона пользователя
+              example: "user@example.com"
+    responses:
+      200:
+        description: Если аккаунт существует, будет отправлен email для сброса пароля
+        schema:
+          type: object
+          properties:
+            success:
+              type: boolean
+              example: true
+            message:
+              type: string
+              example: "If the account exists, a password reset email will be sent"
+    """
     identifier = data['identifier'].strip()
     
     # Find user by email or phone
@@ -586,7 +828,61 @@ def forgot_password(data):
 @auth_bp.route('/reset-password', methods=['POST'])
 @validate_json_data(required_fields=['token', 'newPassword'])
 def reset_password(data):
-    """Reset password with token"""
+    """Reset password with token
+    ---
+    tags:
+      - Authentication
+    summary: Сброс пароля по токену
+    description: Устанавливает новый пароль используя токен сброса
+    parameters:
+      - in: body
+        name: reset_data
+        description: Данные для сброса пароля
+        required: true
+        schema:
+          type: object
+          required:
+            - token
+            - newPassword
+          properties:
+            token:
+              type: string
+              description: Токен сброса пароля
+              example: "reset-token-123"
+            newPassword:
+              type: string
+              description: Новый пароль (минимум 8 символов)
+              example: "newPassword123"
+    responses:
+      200:
+        description: Пароль успешно сброшен
+        schema:
+          type: object
+          properties:
+            success:
+              type: boolean
+              example: true
+            message:
+              type: string
+              example: "Password reset successfully"
+      400:
+        description: Неверный токен или пароль
+        schema:
+          type: object
+          properties:
+            success:
+              type: boolean
+              example: false
+            error:
+              type: object
+              properties:
+                code:
+                  type: string
+                  example: "INVALID_TOKEN"
+                message:
+                  type: string
+                  example: "Invalid or expired reset token"
+    """
     token = data['token']
     new_password = data['newPassword']
     
