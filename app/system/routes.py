@@ -81,7 +81,53 @@ def info():
 
 @system_bp.route('/config', methods=['GET'])
 def config():
-    """Client configuration"""
+    """Client configuration
+    ---
+    tags:
+      - System
+    summary: Конфигурация клиента
+    description: Возвращает конфигурационные параметры для клиентского приложения
+    responses:
+      200:
+        description: Конфигурация клиента
+        schema:
+          type: object
+          properties:
+            success:
+              type: boolean
+              example: true
+            data:
+              type: object
+              properties:
+                maxFileSize:
+                  type: string
+                  example: "16MB"
+                supportedImageFormats:
+                  type: array
+                  items:
+                    type: string
+                  example: ["jpg", "jpeg", "png"]
+                supportedDocumentFormats:
+                  type: array
+                  items:
+                    type: string
+                  example: ["pdf", "doc", "docx"]
+                features:
+                  type: object
+                  properties:
+                    emailVerification:
+                      type: boolean
+                      example: true
+                    smsVerification:
+                      type: boolean
+                      example: true
+                    adminApproval:
+                      type: boolean
+                      example: true
+                    fileUploads:
+                      type: boolean
+                      example: true
+    """
     return success_response({
         'maxFileSize': '16MB',
         'supportedImageFormats': ['jpg', 'jpeg', 'png'],
