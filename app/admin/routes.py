@@ -21,7 +21,7 @@ def get_users(current_user):
     summary: Получить список всех пользователей
     description: Возвращает пагинированный список всех пользователей с возможностью фильтрации
     security:
-      - Bearer: []
+      - UserAuth: []
     parameters:
       - in: query
         name: page
@@ -144,7 +144,7 @@ def get_user(current_user, user_id):
     summary: Получить детальную информацию о пользователе
     description: Возвращает подробную информацию о пользователе по ID
     security:
-      - Bearer: []
+      - UserAuth: []
     parameters:
       - in: path
         name: user_id
@@ -218,7 +218,7 @@ def create_user(current_user, data):
     summary: Создать нового пользователя
     description: Создает нового пользователя в системе (только для администраторов)
     security:
-      - Bearer: []
+      - UserAuth: []
     parameters:
       - in: body
         name: user_data
@@ -395,7 +395,7 @@ def update_user(current_user, data, user_id):
     summary: Обновить информацию пользователя
     description: Обновляет информацию о пользователе (только для администраторов)
     security:
-      - Bearer: []
+      - UserAuth: []
     parameters:
       - in: path
         name: user_id
@@ -574,7 +574,7 @@ def delete_user(current_user, user_id):
     summary: Удалить пользователя
     description: Удаляет пользователя из системы (только для администраторов)
     security:
-      - Bearer: []
+      - UserAuth: []
     parameters:
       - in: path
         name: user_id
@@ -637,7 +637,7 @@ def verify_user(current_user, user_id):
     summary: Верифицировать аккаунт пользователя
     description: Административная верификация аккаунта пользователя
     security:
-      - Bearer: []
+      - UserAuth: []
     parameters:
       - in: path
         name: user_id
@@ -727,7 +727,7 @@ def block_user(current_user, data, user_id):
     summary: Заблокировать или разблокировать пользователя
     description: Административная блокировка или разблокировка аккаунта пользователя
     security:
-      - Bearer: []
+      - UserAuth: []
     parameters:
       - in: path
         name: user_id
@@ -852,7 +852,7 @@ def get_activity_logs(current_user):
     summary: Получить журнал активности
     description: Возвращает пагинированный список всех действий пользователей в системе
     security:
-      - Bearer: []
+      - UserAuth: []
     parameters:
       - in: query
         name: page

@@ -18,7 +18,7 @@ def get_notifications():
     summary: Получить уведомления пользователя
     description: Возвращает пагинированный список уведомлений текущего пользователя
     security:
-      - Bearer: []
+      - UserAuth: []
     parameters:
       - in: query
         name: page
@@ -120,7 +120,7 @@ def mark_notification_read(notification_id):
     summary: Отметить уведомление как прочитанное
     description: Помечает указанное уведомление пользователя как прочитанное
     security:
-      - Bearer: []
+      - UserAuth: []
     parameters:
       - in: path
         name: notification_id
@@ -188,7 +188,7 @@ def mark_all_notifications_read():
     summary: Отметить все уведомления как прочитанные
     description: Помечает все непрочитанные уведомления пользователя как прочитанные
     security:
-      - Bearer: []
+      - UserAuth: []
     responses:
       200:
         description: Все уведомления успешно отмечены как прочитанные

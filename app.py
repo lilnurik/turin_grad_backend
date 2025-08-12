@@ -79,16 +79,16 @@ def create_app():
         "basePath": "/",
         "schemes": ["http", "https"],
         "securityDefinitions": {
-            "Bearer": {
+            "UserAuth": {
                 "type": "apiKey",
                 "name": "Authorization",
                 "in": "header",
-                "description": "JWT Authorization header using the Bearer scheme. Example: \"Authorization: Bearer {token}\""
+                "description": "Login with your identifier (email, phone, or student ID) and password via /api/auth/login to get an access token, then include it in the Authorization header."
             }
         },
         "security": [
             {
-                "Bearer": []
+                "UserAuth": []
             }
         ]
     }

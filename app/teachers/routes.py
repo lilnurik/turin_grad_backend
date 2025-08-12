@@ -17,7 +17,7 @@ def get_teachers():
     summary: Получить список преподавателей
     description: Возвращает пагинированный список всех преподавателей с возможностью фильтрации
     security:
-      - Bearer: []
+      - UserAuth: []
     parameters:
       - in: query
         name: page

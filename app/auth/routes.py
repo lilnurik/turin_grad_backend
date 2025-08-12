@@ -184,7 +184,7 @@ def logout(data):
     summary: Выход из системы
     description: Выход пользователя из системы с аннулированием токена
     security:
-      - Bearer: []
+      - UserAuth: []
     parameters:
       - in: body
         name: logout_data
@@ -708,7 +708,7 @@ def refresh():
     summary: Обновление access токена
     description: Генерирует новый access токен используя refresh токен
     security:
-      - Bearer: []
+      - UserAuth: []
     responses:
       200:
         description: Новый access токен успешно создан

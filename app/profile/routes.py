@@ -17,7 +17,7 @@ def get_profile():
     summary: Получить профиль текущего пользователя
     description: Возвращает информацию о профиле авторизованного пользователя
     security:
-      - Bearer: []
+      - UserAuth: []
     responses:
       200:
         description: Профиль пользователя
@@ -132,7 +132,7 @@ def update_profile(data):
     summary: Обновить профиль пользователя
     description: Обновляет разрешенные поля профиля авторизованного пользователя
     security:
-      - Bearer: []
+      - UserAuth: []
     parameters:
       - in: body
         name: profile_data
@@ -249,7 +249,7 @@ def get_work_experience():
     summary: Получить опыт работы пользователя
     description: Возвращает список всего опыта работы текущего пользователя
     security:
-      - Bearer: []
+      - UserAuth: []
     responses:
       200:
         description: Опыт работы успешно получен
@@ -305,7 +305,7 @@ def add_work_experience(data):
     summary: Добавить опыт работы
     description: Добавляет новый опыт работы для текущего пользователя
     security:
-      - Bearer: []
+      - UserAuth: []
     parameters:
       - in: body
         name: experience_data
@@ -413,7 +413,7 @@ def get_education_goals():
     summary: Получить образовательные цели пользователя
     description: Возвращает список всех образовательных целей текущего пользователя
     security:
-      - Bearer: []
+      - UserAuth: []
     responses:
       200:
         description: Образовательные цели успешно получены
@@ -464,7 +464,7 @@ def add_education_goal(data):
     summary: Добавить образовательную цель
     description: Добавляет новую образовательную цель для текущего пользователя
     security:
-      - Bearer: []
+      - UserAuth: []
     parameters:
       - in: body
         name: goal_data

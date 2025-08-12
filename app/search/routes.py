@@ -17,7 +17,7 @@ def global_search():
     summary: Глобальный поиск по системе
     description: Выполняет поиск по пользователям и компаниям в зависимости от указанного типа
     security:
-      - Bearer: []
+      - UserAuth: []
     parameters:
       - in: query
         name: q
@@ -146,7 +146,7 @@ def search_students():
     summary: Расширенный поиск студентов
     description: Выполняет поиск студентов с возможностью применения различных фильтров
     security:
-      - Bearer: []
+      - UserAuth: []
     parameters:
       - in: query
         name: q
