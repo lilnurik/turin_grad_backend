@@ -18,7 +18,7 @@ def get_students(current_user=None):
     summary: Получить список студентов
     description: Возвращает пагинированный список всех студентов с возможностью фильтрации
     security:
-      - Bearer: []
+      - UserAuth: []
     parameters:
       - in: query
         name: page

@@ -18,7 +18,7 @@ def get_faculties():
     summary: Получить список факультетов
     description: Возвращает список всех факультетов университета
     security:
-      - Bearer: []
+      - UserAuth: []
     responses:
       200:
         description: Список факультетов успешно получен
@@ -66,7 +66,7 @@ def get_directions():
     summary: Получить список направлений
     description: Возвращает список направлений обучения, опционально отфильтрованный по факультету
     security:
-      - Bearer: []
+      - UserAuth: []
     parameters:
       - in: query
         name: facultyId
@@ -132,7 +132,7 @@ def get_companies():
     summary: Получить список компаний
     description: Возвращает пагинированный список компаний с возможностью поиска
     security:
-      - Bearer: []
+      - UserAuth: []
     parameters:
       - in: query
         name: page
@@ -222,7 +222,7 @@ def add_company(data):
     summary: Добавить новую компанию
     description: Добавляет новую компанию в базу данных
     security:
-      - Bearer: []
+      - UserAuth: []
     parameters:
       - in: body
         name: company_data
