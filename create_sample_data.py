@@ -130,6 +130,9 @@ def create_sample_data():
                 'admission_year': 2021,
                 'graduation_year': 2025,
                 'financing_type': 'budget',
+                'student_status': 'current',
+                'degree_level': 'bachelor',
+                'student_type': 'regular',
                 'phone': '+998901234501',
                 'is_verified': True,
                 'email_verified': True
@@ -145,6 +148,9 @@ def create_sample_data():
                 'admission_year': 2021,
                 'graduation_year': 2025,
                 'financing_type': 'contract',
+                'student_status': 'current',
+                'degree_level': 'bachelor',
+                'student_type': 'regular',
                 'phone': '+998901234502',
                 'is_verified': True,
                 'email_verified': True
@@ -160,8 +166,87 @@ def create_sample_data():
                 'admission_year': 2022,
                 'graduation_year': 2026,
                 'financing_type': 'budget',
+                'student_status': 'current',
+                'degree_level': 'bachelor',
+                'student_type': 'regular',
                 'phone': '+998901234503',
                 'is_verified': False,  # Pending verification
+                'email_verified': True
+            },
+            # Graduate students with different degree levels
+            {
+                'first_name': 'Sarvar',
+                'last_name': 'Karimov',
+                'email': 's.karimov@student.ttpu.uz',
+                'student_id': '20190001',
+                'role': 'student',
+                'faculty': 'Факультет информатики',
+                'direction': 'Компьютерные системы',
+                'admission_year': 2019,
+                'graduation_year': 2023,
+                'financing_type': 'budget',
+                'student_status': 'graduate',
+                'degree_level': 'bachelor',
+                'student_type': 'regular',
+                'phone': '+998901234504',
+                'is_verified': True,
+                'email_verified': True
+            },
+            # Master's student
+            {
+                'first_name': 'Nodira',
+                'last_name': 'Abdullayeva',
+                'email': 'n.abdullayeva@student.ttpu.uz',
+                'student_id': 'M20230001',
+                'role': 'student',
+                'faculty': 'Экономический факультет',
+                'direction': 'Финансы и кредит',
+                'admission_year': 2023,
+                'graduation_year': 2025,
+                'financing_type': 'contract',
+                'student_status': 'current',
+                'degree_level': 'master',
+                'student_type': 'regular',
+                'phone': '+998901234505',
+                'is_verified': True,
+                'email_verified': True
+            },
+            # PhD student
+            {
+                'first_name': 'Rustam',
+                'last_name': 'Aminov',
+                'email': 'r.aminov@student.ttpu.uz',
+                'student_id': 'P20220001',
+                'role': 'student',
+                'faculty': 'Факультет информатики',
+                'direction': 'Информационные технологии',
+                'admission_year': 2022,
+                'graduation_year': 2025,
+                'financing_type': 'budget',
+                'student_status': 'current',
+                'degree_level': 'phd',
+                'student_type': 'regular',
+                'phone': '+998901234506',
+                'is_verified': True,
+                'email_verified': True
+            },
+            # PhD free applicant
+            {
+                'first_name': 'Gulnara',
+                'last_name': 'Saidova',
+                'email': 'g.saidova@student.ttpu.uz',
+                'student_id': 'P20230002',
+                'role': 'student',
+                'faculty': 'Экономический факультет',
+                'direction': 'Экономическая теория',
+                'admission_year': 2023,
+                'graduation_year': 2026,
+                'financing_type': 'contract',
+                'student_status': 'current',
+                'degree_level': 'phd',
+                'student_type': 'free_applicant',
+                'phone': '+998901234507',
+                'is_verified': True,
                 'email_verified': True
             }
         ]
