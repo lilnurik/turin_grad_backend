@@ -1144,6 +1144,11 @@ def confirm_graduation(current_user, student_id):
     if student.student_status == 'graduate':
         return error_response('ALREADY_GRADUATED', 'Студент уже выпущен', 400)
     
+    # Validate graduation data
+    validation_errors = student.validate_graduation_data()
+    if validation_errors:
+        return error_response('VALIDATION_ERROR', f'Ошибки валидации: {", ".join(validation_errors)}', 400)
+    
     # Update student status
     student.student_status = 'graduate'
     student.updated_at = datetime.utcnow()
@@ -1265,3 +1270,288 @@ def revert_graduation(current_user, student_id):
     except Exception as e:
         db.session.rollback()
         return error_response('DATABASE_ERROR', 'Ошибка при обновлении статуса студента', 500)
+@admin_bp.route('/students/<student_id>/graduation-info', methods=['PUT'])
+@jwt_required()
+@role_required('admin')
+@validate_json_data(required_fields=['admissionYear', 'graduationYear', 'degreeLevel'])
+def update_graduation_info(current_user, student_id, data):
+    """Update student graduation information
+    ---
+    tags:
+      - Admin
+    summary: Обновить информацию об обучении студента
+    description: Обновляет годы поступления и выпуска, уровень образования и тип студента
+    security:
+      - Bearer: []
+    parameters:
+      - in: path
+        name: student_id
+        type: string
+        required: true
+        description: ID студента
+      - in: body
+        name: body
+        required: true
+        schema:
+          type: object
+          required:
+            - admissionYear
+            - graduationYear
+            - degreeLevel
+          properties:
+            admissionYear:
+              type: integer
+              example: 2021
+              description: Год поступления
+            graduationYear:
+              type: integer
+              example: 2025
+              description: Год выпуска
+            degreeLevel:
+              type: string
+              enum: [bachelor, master, phd, dsc]
+              example: bachelor
+              description: Уровень образования
+            studentType:
+              type: string
+              enum: [regular, free_applicant, external]
+              example: regular
+              description: Тип студента (только для PhD/DSc)
+            faculty:
+              type: string
+              example: "Факультет информатики"
+              description: Факультет
+            direction:
+              type: string
+              example: "Программная инженерия"
+              description: Направление
+    responses:
+      200:
+        description: Информация об обучении успешно обновлена
+      400:
+        description: Ошибка валидации
+      403:
+        description: Доступ запрещен (только для администраторов)
+      404:
+        description: Студент не найден
+    """
+    # Find the student
+    student = User.query.filter_by(id=student_id, role='student').first()
+    if not student:
+        return error_response('STUDENT_NOT_FOUND', 'Студент не найден', 404)
+    
+    # Don't allow modification of graduated students without explicit permission
+    if student.student_status == 'graduate':
+        return error_response('STUDENT_GRADUATED', 'Нельзя изменить данные выпускника', 400)
+    
+    # Update fields
+    old_graduation_year = student.graduation_year
+    student.admission_year = data['admissionYear']
+    student.graduation_year = data['graduationYear']
+    student.degree_level = data['degreeLevel']
+    
+    if 'studentType' in data:
+        student.student_type = data['studentType']
+    elif data['degreeLevel'] in ['bachelor', 'master']:
+        student.student_type = 'regular'  # Force regular for bachelor/master
+    
+    if 'faculty' in data:
+        student.faculty = data['faculty']
+    
+    if 'direction' in data:
+        student.direction = data['direction']
+    
+    # Validate the updated data
+    validation_errors = student.validate_graduation_data()
+    if validation_errors:
+        return error_response('VALIDATION_ERROR', f'Ошибки валидации: {", ".join(validation_errors)}', 400)
+    
+    student.updated_at = datetime.utcnow()
+    
+    try:
+        db.session.commit()
+        
+        # Log the action
+        changes = []
+        if old_graduation_year != data['graduationYear']:
+            changes.append(f"год выпуска: {old_graduation_year} → {data['graduationYear']}")
+        
+        log = ActivityLog(
+            user_id=current_user.id,
+            action='STUDENT_GRADUATION_INFO_UPDATED',
+            target_id=student.id,
+            target_type='User',
+            details=f'Обновлена информация об обучении студента {student.first_name} {student.last_name}. Изменения: {", ".join(changes) if changes else "данные обновлены"}'
+        )
+        db.session.add(log)
+        
+        # Create notification for the student
+        notification = Notification(
+            user_id=student.id,
+            title='Обновлена информация об обучении',
+            message=f'Администратор обновил информацию о вашем обучении.',
+            type='info'
+        )
+        db.session.add(notification)
+        
+        db.session.commit()
+        
+        return success_response(student.to_dict())
+        
+    except Exception as e:
+        db.session.rollback()
+        return error_response('DATABASE_ERROR', 'Ошибка при обновлении информации об обучении', 500)
+
+@admin_bp.route('/graduation-statistics', methods=['GET'])
+@jwt_required()
+@role_required('admin')
+def get_graduation_statistics(current_user):
+    """Get graduation statistics
+    ---
+    tags:
+      - Admin
+    summary: Получить статистику по выпускникам
+    description: Возвращает статистику по студентам и выпускникам
+    security:
+      - Bearer: []
+    parameters:
+      - in: query
+        name: year
+        type: integer
+        description: Год выпуска для фильтрации (по умолчанию текущий академический год)
+    responses:
+      200:
+        description: Статистика успешно получена
+        schema:
+          type: object
+          properties:
+            success:
+              type: boolean
+              example: true
+            data:
+              type: object
+              properties:
+                currentStudents:
+                  type: integer
+                  description: Количество действующих студентов
+                graduates:
+                  type: integer
+                  description: Количество выпускников
+                eligibleForGraduation:
+                  type: integer
+                  description: Количество студентов готовых к выпуску
+                byDegreeLevel:
+                  type: object
+                  properties:
+                    bachelor:
+                      type: object
+                      properties:
+                        current:
+                          type: integer
+                        graduates:
+                          type: integer
+                    master:
+                      type: object
+                      properties:
+                        current:
+                          type: integer
+                        graduates:
+                          type: integer
+                    phd:
+                      type: object
+                      properties:
+                        current:
+                          type: integer
+                        graduates:
+                          type: integer
+                    dsc:
+                      type: object
+                      properties:
+                        current:
+                          type: integer
+                        graduates:
+                          type: integer
+                byFaculty:
+                  type: object
+                  description: Статистика по факультетам
+      403:
+        description: Доступ запрещен (только для администраторов)
+    """
+    from datetime import datetime
+    from sqlalchemy import func
+    
+    # Get filter year
+    filter_year = request.args.get('year', type=int)
+    current_date = datetime.now()
+    current_academic_year = current_date.year
+    if current_date.month < 6:  # Before June, still in previous academic year
+        current_academic_year -= 1
+    
+    if not filter_year:
+        filter_year = current_academic_year + 1  # Default to current graduation year
+    
+    # Base statistics
+    total_students = User.query.filter_by(role='student').count()
+    current_students = User.query.filter_by(role='student', student_status='current').count()
+    graduates = User.query.filter_by(role='student', student_status='graduate').count()
+    
+    # Students eligible for graduation
+    eligible_query = User.query.filter(
+        User.role == 'student',
+        User.student_status == 'current',
+        User.graduation_year <= current_academic_year + 1
+    )
+    eligible_for_graduation = eligible_query.count()
+    
+    # Statistics by degree level
+    degree_stats = {}
+    for degree in ['bachelor', 'master', 'phd', 'dsc']:
+        current_count = User.query.filter_by(
+            role='student', 
+            student_status='current', 
+            degree_level=degree
+        ).count()
+        graduate_count = User.query.filter_by(
+            role='student', 
+            student_status='graduate', 
+            degree_level=degree
+        ).count()
+        
+        degree_stats[degree] = {
+            'current': current_count,
+            'graduates': graduate_count
+        }
+    
+    # Statistics by faculty
+    faculty_stats = {}
+    faculties = db.session.query(User.faculty).filter(
+        User.role == 'student',
+        User.faculty.isnot(None)
+    ).distinct().all()
+    
+    for (faculty,) in faculties:
+        current_count = User.query.filter_by(
+            role='student', 
+            student_status='current', 
+            faculty=faculty
+        ).count()
+        graduate_count = User.query.filter_by(
+            role='student', 
+            student_status='graduate', 
+            faculty=faculty
+        ).count()
+        
+        faculty_stats[faculty] = {
+            'current': current_count,
+            'graduates': graduate_count
+        }
+    
+    return success_response({
+        'totalStudents': total_students,
+        'currentStudents': current_students,
+        'graduates': graduates,
+        'eligibleForGraduation': eligible_for_graduation,
+        'academicYear': f"06.{current_academic_year}-06.{current_academic_year + 1}",
+        'byDegreeLevel': degree_stats,
+        'byFaculty': faculty_stats
+    })

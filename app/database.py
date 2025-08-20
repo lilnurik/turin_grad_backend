@@ -92,6 +92,33 @@ class User(db.Model):
             return None
         return f"06.{self.admission_year}-06.{self.graduation_year}"
     
+    def validate_graduation_data(self):
+        """Validate graduation-related data consistency"""
+        errors = []
+        
+        if self.role == 'student':
+            # Check admission and graduation years
+            if self.admission_year and self.graduation_year:
+                if self.graduation_year <= self.admission_year:
+                    errors.append("Graduation year must be after admission year")
+                
+                # Validate degree duration based on level
+                duration = self.graduation_year - self.admission_year
+                if self.degree_level == 'bachelor' and duration not in [4, 5]:
+                    errors.append("Bachelor degree duration should be 4-5 years")
+                elif self.degree_level == 'master' and duration not in [2, 3]:
+                    errors.append("Master degree duration should be 2-3 years")
+                elif self.degree_level == 'phd' and duration not in [3, 4, 5]:
+                    errors.append("PhD duration should be 3-5 years")
+                elif self.degree_level == 'dsc' and duration not in [3, 4]:
+                    errors.append("DSc duration should be 3-4 years")
+            
+            # Validate student type based on degree level
+            if self.degree_level in ['bachelor', 'master'] and self.student_type != 'regular':
+                errors.append("Bachelor and Master students must be regular type")
+            
+        return errors
+    
     def to_dict(self):
         return {
             'id': self.id,
