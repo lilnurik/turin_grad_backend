@@ -962,3 +962,306 @@ def get_activity_logs(current_user):
     query = query.order_by(ActivityLog.created_at.desc())
     
     return success_response(create_pagination_response(query, page, limit))
+
+@admin_bp.route('/graduating-students', methods=['GET'])
+@jwt_required()
+@role_required('admin')
+def get_graduating_students(current_user):
+    """Get list of students eligible for graduation
+    ---
+    tags:
+      - Admin
+    summary: Получить список студентов готовых к выпуску
+    description: Возвращает список студентов, которые готовы к выпуску (текущий год >= год выпуска)
+    security:
+      - Bearer: []
+    parameters:
+      - in: query
+        name: page
+        type: integer
+        description: Номер страницы для пагинации
+        default: 1
+      - in: query
+        name: limit
+        type: integer
+        description: Количество элементов на странице
+        default: 10
+      - in: query
+        name: faculty
+        type: string
+        description: Фильтр по факультету
+      - in: query
+        name: degreeLevel
+        type: string
+        enum: [bachelor, master, phd, dsc]
+        description: Фильтр по уровню образования
+    responses:
+      200:
+        description: Список студентов готовых к выпуску успешно получен
+        schema:
+          type: object
+          properties:
+            success:
+              type: boolean
+              example: true
+            data:
+              type: object
+              properties:
+                items:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      id:
+                        type: string
+                      firstName:
+                        type: string
+                      lastName:
+                        type: string
+                      email:
+                        type: string
+                      studentId:
+                        type: string
+                      faculty:
+                        type: string
+                      direction:
+                        type: string
+                      admissionYear:
+                        type: integer
+                      graduationYear:
+                        type: integer
+                      academicYearPeriod:
+                        type: string
+                        example: "06.2021-06.2025"
+                      degreeLevel:
+                        type: string
+                      studentType:
+                        type: string
+                      isEligibleForGraduation:
+                        type: boolean
+                pagination:
+                  type: object
+                  properties:
+                    page:
+                      type: integer
+                    limit:
+                      type: integer
+                    total:
+                      type: integer
+                    totalPages:
+                      type: integer
+      403:
+        description: Доступ запрещен (только для администраторов)
+    """
+    page, limit = get_pagination_params()
+    
+    # Query students who are eligible for graduation
+    query = User.query.filter(
+        User.role == 'student',
+        User.student_status == 'current',
+        User.graduation_year.isnot(None)
+    )
+    
+    # Filter by faculty if provided
+    faculty = request.args.get('faculty')
+    if faculty:
+        query = query.filter(User.faculty == faculty)
+    
+    # Filter by degree level if provided
+    degree_level = request.args.get('degreeLevel')
+    if degree_level:
+        query = query.filter(User.degree_level == degree_level)
+    
+    # Filter only eligible students (graduation year <= current academic year)
+    from datetime import datetime
+    current_date = datetime.now()
+    current_academic_year = current_date.year
+    if current_date.month < 6:  # Before June, still in previous academic year
+        current_academic_year -= 1
+    
+    query = query.filter(User.graduation_year <= current_academic_year + 1)
+    
+    # Sort by graduation year and last name
+    query = query.order_by(User.graduation_year.asc(), User.last_name.asc())
+    
+    return success_response(create_pagination_response(query, page, limit))
+
+@admin_bp.route('/students/<student_id>/confirm-graduation', methods=['POST'])
+@jwt_required()
+@role_required('admin')
+def confirm_graduation(current_user, student_id):
+    """Confirm student graduation
+    ---
+    tags:
+      - Admin
+    summary: Подтвердить выпуск студента
+    description: Изменяет статус студента на "выпускник"
+    security:
+      - Bearer: []
+    parameters:
+      - in: path
+        name: student_id
+        type: string
+        required: true
+        description: ID студента
+    responses:
+      200:
+        description: Выпуск студента успешно подтвержден
+        schema:
+          type: object
+          properties:
+            success:
+              type: boolean
+              example: true
+            data:
+              type: object
+              properties:
+                id:
+                  type: string
+                firstName:
+                  type: string
+                lastName:
+                  type: string
+                studentStatus:
+                  type: string
+                  example: "graduate"
+      400:
+        description: Ошибка валидации
+      403:
+        description: Доступ запрещен (только для администраторов)
+      404:
+        description: Студент не найден
+    """
+    # Find the student
+    student = User.query.filter_by(id=student_id, role='student').first()
+    if not student:
+        return error_response('STUDENT_NOT_FOUND', 'Студент не найден', 404)
+    
+    # Check if student is eligible for graduation
+    if not student.is_eligible_for_graduation():
+        return error_response('NOT_ELIGIBLE', 'Студент не готов к выпуску', 400)
+    
+    if student.student_status == 'graduate':
+        return error_response('ALREADY_GRADUATED', 'Студент уже выпущен', 400)
+    
+    # Update student status
+    student.student_status = 'graduate'
+    student.updated_at = datetime.utcnow()
+    
+    try:
+        db.session.commit()
+        
+        # Log the action
+        log = ActivityLog(
+            user_id=current_user.id,
+            action='STUDENT_GRADUATED',
+            target_id=student.id,
+            target_type='User',
+            details=f'Подтвержден выпуск студента {student.first_name} {student.last_name}'
+        )
+        db.session.add(log)
+        
+        # Create notification for the student
+        notification = Notification(
+            user_id=student.id,
+            title='Поздравляем с выпуском!',
+            message=f'Ваш выпуск был подтвержден администратором. Поздравляем с завершением обучения!',
+            type='success'
+        )
+        db.session.add(notification)
+        
+        db.session.commit()
+        
+        return success_response(student.to_dict())
+        
+    except Exception as e:
+        db.session.rollback()
+        return error_response('DATABASE_ERROR', 'Ошибка при обновлении статуса студента', 500)
+
+@admin_bp.route('/students/<student_id>/revert-graduation', methods=['POST'])
+@jwt_required()
+@role_required('admin')
+def revert_graduation(current_user, student_id):
+    """Revert student graduation status
+    ---
+    tags:
+      - Admin
+    summary: Отменить выпуск студента
+    description: Возвращает статус студента обратно на "действующий студент"
+    security:
+      - Bearer: []
+    parameters:
+      - in: path
+        name: student_id
+        type: string
+        required: true
+        description: ID студента
+    responses:
+      200:
+        description: Статус студента успешно изменен
+        schema:
+          type: object
+          properties:
+            success:
+              type: boolean
+              example: true
+            data:
+              type: object
+              properties:
+                id:
+                  type: string
+                firstName:
+                  type: string
+                lastName:
+                  type: string
+                studentStatus:
+                  type: string
+                  example: "current"
+      400:
+        description: Ошибка валидации
+      403:
+        description: Доступ запрещен (только для администраторов)
+      404:
+        description: Студент не найден
+    """
+    # Find the student
+    student = User.query.filter_by(id=student_id, role='student').first()
+    if not student:
+        return error_response('STUDENT_NOT_FOUND', 'Студент не найден', 404)
+    
+    if student.student_status != 'graduate':
+        return error_response('NOT_GRADUATED', 'Студент не является выпускником', 400)
+    
+    # Update student status
+    student.student_status = 'current'
+    student.updated_at = datetime.utcnow()
+    
+    try:
+        db.session.commit()
+        
+        # Log the action
+        log = ActivityLog(
+            user_id=current_user.id,
+            action='STUDENT_GRADUATION_REVERTED',
+            target_id=student.id,
+            target_type='User',
+            details=f'Отменен выпуск студента {student.first_name} {student.last_name}'
+        )
+        db.session.add(log)
+        
+        # Create notification for the student
+        notification = Notification(
+            user_id=student.id,
+            title='Статус выпуска изменен',
+            message=f'Ваш статус выпуска был изменен администратором.',
+            type='info'
+        )
+        db.session.add(notification)
+        
+        db.session.commit()
+        
+        return success_response(student.to_dict())
+        
+    except Exception as e:
+        db.session.rollback()
+        return error_response('DATABASE_ERROR', 'Ошибка при обновлении статуса студента', 500)

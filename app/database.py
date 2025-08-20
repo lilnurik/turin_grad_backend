@@ -27,6 +27,11 @@ class User(db.Model):
     graduation_year = db.Column(db.Integer)
     financing_type = db.Column(db.Enum('budget', 'contract', name='financing_types'))
     
+    # Student status and degree information
+    student_status = db.Column(db.Enum('current', 'graduate', name='student_status'), default='current')
+    degree_level = db.Column(db.Enum('bachelor', 'master', 'phd', 'dsc', name='degree_levels'), default='bachelor')
+    student_type = db.Column(db.Enum('regular', 'free_applicant', 'external', name='student_types'), default='regular')
+    
     # Status fields
     is_verified = db.Column(db.Boolean, default=False)
     is_blocked = db.Column(db.Boolean, default=False)
@@ -70,6 +75,23 @@ class User(db.Model):
         self.password_reset_expires = datetime.utcnow() + timedelta(hours=24)
         return self.password_reset_token
     
+    def is_eligible_for_graduation(self):
+        """Check if student is eligible for graduation based on June-to-June academic year"""
+        if self.role != 'student' or not self.graduation_year or self.student_status == 'graduate':
+            return False
+        
+        current_date = datetime.now()
+        # Academic year starts in June, so check if current date is past June of graduation year
+        graduation_start_date = datetime(self.graduation_year, 6, 1)
+        
+        return current_date >= graduation_start_date
+    
+    def get_academic_year_period(self):
+        """Get the academic year period string in format '06.YYYY-06.YYYY'"""
+        if not self.admission_year or not self.graduation_year:
+            return None
+        return f"06.{self.admission_year}-06.{self.graduation_year}"
+    
     def to_dict(self):
         return {
             'id': self.id,
@@ -84,7 +106,12 @@ class User(db.Model):
             'direction': self.direction,
             'admissionYear': self.admission_year,
             'graduationYear': self.graduation_year,
+            'academicYearPeriod': self.get_academic_year_period(),
             'financingType': self.financing_type,
+            'studentStatus': self.student_status,
+            'degreeLevel': self.degree_level,
+            'studentType': self.student_type,
+            'isEligibleForGraduation': self.is_eligible_for_graduation() if self.role == 'student' else False,
             'isVerified': self.is_verified,
             'isBlocked': self.is_blocked,
             'blockReason': self.block_reason,

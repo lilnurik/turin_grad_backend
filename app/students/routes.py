@@ -38,6 +38,16 @@ def get_students(current_user=None):
         name: faculty
         type: string
         description: Фильтр по факультету
+      - in: query
+        name: studentStatus
+        type: string
+        enum: [current, graduate]
+        description: Фильтр по статусу студента
+      - in: query
+        name: degreeLevel
+        type: string
+        enum: [bachelor, master, phd, dsc]
+        description: Фильтр по уровню образования
     responses:
       200:
         description: Список студентов успешно получен
@@ -118,6 +128,16 @@ def get_students(current_user=None):
     faculty = request.args.get('faculty')
     if faculty:
         query = query.filter(User.faculty == faculty)
+    
+    # Filter by student status
+    student_status = request.args.get('studentStatus')
+    if student_status:
+        query = query.filter(User.student_status == student_status)
+    
+    # Filter by degree level
+    degree_level = request.args.get('degreeLevel')
+    if degree_level:
+        query = query.filter(User.degree_level == degree_level)
     
     query = query.order_by(User.created_at.desc())
     
