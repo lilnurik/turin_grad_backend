@@ -122,6 +122,244 @@ def get_directions():
     directions = query.order_by(Direction.name).all()
     return success_response([direction.to_dict() for direction in directions])
 
+@dictionaries_bp.route('/directions', methods=['POST'])
+@jwt_required()
+@role_required('admin')
+@validate_json_data(required_fields=['name', 'facultyId'])
+def create_direction(current_user, data):
+    """Create a new direction (Admin only)
+    ---
+    tags:
+      - Dictionaries
+    summary: Создать новое направление (для администраторов)
+    description: Создает новое направление обучения в системе
+    security:
+      - Bearer: []
+    parameters:
+      - in: body
+        name: direction_data
+        description: Данные нового направления
+        required: true
+        schema:
+          type: object
+          required:
+            - name
+            - facultyId
+          properties:
+            name:
+              type: string
+              description: Название направления
+              example: "Информационные технологии"
+            facultyId:
+              type: string
+              description: ID факультета
+              example: "faculty123"
+            description:
+              type: string
+              description: Описание направления
+              example: "Подготовка специалистов в области IT"
+    responses:
+      201:
+        description: Направление успешно создано
+        schema:
+          type: object
+          properties:
+            success:
+              type: boolean
+              example: true
+            data:
+              type: object
+              properties:
+                id:
+                  type: string
+                name:
+                  type: string
+                facultyId:
+                  type: string
+                description:
+                  type: string
+                createdAt:
+                  type: string
+                  format: date-time
+      400:
+        description: Направление с таким названием уже существует в данном факультете или ошибка валидации
+      401:
+        description: Не авторизован
+      403:
+        description: Доступ запрещен (только для администраторов)
+      404:
+        description: Факультет не найден
+    """
+    # Check if faculty exists
+    faculty = Faculty.query.get(data['facultyId'])
+    if not faculty:
+        return error_response('FACULTY_NOT_FOUND', 'Faculty not found', status_code=404)
+    
+    # Check if direction already exists in this faculty
+    existing_direction = Direction.query.filter_by(
+        name=data['name'], 
+        faculty_id=data['facultyId']
+    ).first()
+    if existing_direction:
+        return error_response('DIRECTION_EXISTS', 'Direction with this name already exists in the faculty', status_code=400)
+    
+    direction = Direction(
+        name=data['name'],
+        faculty_id=data['facultyId'],
+        description=data.get('description')
+    )
+    
+    db.session.add(direction)
+    db.session.commit()
+    
+    return success_response(direction.to_dict(), status_code=201)
+
+@dictionaries_bp.route('/directions/<direction_id>', methods=['PUT'])
+@jwt_required()
+@role_required('admin')
+@validate_json_data()
+def update_direction(current_user, data, direction_id):
+    """Update a direction (Admin only)
+    ---
+    tags:
+      - Dictionaries
+    summary: Обновить направление (для администраторов)
+    description: Обновляет данные существующего направления обучения
+    security:
+      - Bearer: []
+    parameters:
+      - in: path
+        name: direction_id
+        type: string
+        required: true
+        description: ID направления
+      - in: body
+        name: direction_data
+        description: Новые данные направления
+        required: true
+        schema:
+          type: object
+          properties:
+            name:
+              type: string
+              description: Название направления
+              example: "Новое название направления"
+            facultyId:
+              type: string
+              description: ID факультета
+              example: "faculty123"
+            description:
+              type: string
+              description: Описание направления
+              example: "Обновленное описание направления"
+    responses:
+      200:
+        description: Направление успешно обновлено
+        schema:
+          type: object
+          properties:
+            success:
+              type: boolean
+              example: true
+            data:
+              type: object
+              properties:
+                id:
+                  type: string
+                name:
+                  type: string
+                facultyId:
+                  type: string
+                description:
+                  type: string
+                createdAt:
+                  type: string
+                  format: date-time
+      400:
+        description: Направление с таким названием уже существует в данном факультете или ошибка валидации
+      401:
+        description: Не авторизован
+      403:
+        description: Доступ запрещен (только для администраторов)
+      404:
+        description: Направление или факультет не найден
+    """
+    direction = Direction.query.get(direction_id)
+    if not direction:
+        return error_response('DIRECTION_NOT_FOUND', 'Direction not found', status_code=404)
+    
+    # Check if new faculty exists (if facultyId is being changed)
+    if 'facultyId' in data and data['facultyId'] != direction.faculty_id:
+        faculty = Faculty.query.get(data['facultyId'])
+        if not faculty:
+            return error_response('FACULTY_NOT_FOUND', 'Faculty not found', status_code=404)
+        direction.faculty_id = data['facultyId']
+    
+    # Check if new name already exists in the faculty (if name is being changed)
+    if 'name' in data and data['name'] != direction.name:
+        faculty_id = data.get('facultyId', direction.faculty_id)
+        existing_direction = Direction.query.filter_by(
+            name=data['name'], 
+            faculty_id=faculty_id
+        ).first()
+        if existing_direction:
+            return error_response('DIRECTION_EXISTS', 'Direction with this name already exists in the faculty', status_code=400)
+        direction.name = data['name']
+    
+    # Update description if provided
+    if 'description' in data:
+        direction.description = data['description']
+    
+    db.session.commit()
+    
+    return success_response(direction.to_dict())
+
+@dictionaries_bp.route('/directions/<direction_id>', methods=['DELETE'])
+@jwt_required()
+@role_required('admin')
+def delete_direction(current_user, direction_id):
+    """Delete a direction (Admin only)
+    ---
+    tags:
+      - Dictionaries
+    summary: Удалить направление (для администраторов)
+    description: Удаляет направление обучения из системы
+    security:
+      - Bearer: []
+    parameters:
+      - in: path
+        name: direction_id
+        type: string
+        required: true
+        description: ID направления
+    responses:
+      200:
+        description: Направление успешно удалено
+        schema:
+          type: object
+          properties:
+            success:
+              type: boolean
+              example: true
+            message:
+              type: string
+              example: "Direction deleted successfully"
+      401:
+        description: Не авторизован
+      403:
+        description: Доступ запрещен (только для администраторов)
+      404:
+        description: Направление не найдено
+    """
+    direction = Direction.query.get(direction_id)
+    if not direction:
+        return error_response('DIRECTION_NOT_FOUND', 'Direction not found', status_code=404)
+    
+    db.session.delete(direction)
+    db.session.commit()
+    
+    return success_response({'message': 'Direction deleted successfully'})
+
 @dictionaries_bp.route('/companies', methods=['GET'])
 @jwt_required()
 def get_companies():
