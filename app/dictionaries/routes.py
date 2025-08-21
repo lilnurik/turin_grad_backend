@@ -3,7 +3,7 @@ from flask_jwt_extended import jwt_required
 from app.database import db, Faculty, Direction, Company
 from app.utils.decorators import (
     success_response, error_response, validate_json_data,
-    get_pagination_params, create_pagination_response
+    get_pagination_params, create_pagination_response, role_required
 )
 
 dictionaries_bp = Blueprint('dictionaries', __name__)
@@ -295,3 +295,209 @@ def add_company(data):
     db.session.commit()
     
     return success_response(company.to_dict(), status_code=201)
+
+# ========== FACULTY CRUD ENDPOINTS ==========
+
+@dictionaries_bp.route('/faculties', methods=['POST'])
+@jwt_required()
+@role_required('admin')
+@validate_json_data(required_fields=['name'])
+def create_faculty(current_user, data):
+    """Create a new faculty (Admin only)
+    ---
+    tags:
+      - Dictionaries
+    summary: Создать новый факультет (для администраторов)
+    description: Создает новый факультет в системе
+    security:
+      - Bearer: []
+    parameters:
+      - in: body
+        name: faculty_data
+        description: Данные нового факультета
+        required: true
+        schema:
+          type: object
+          required:
+            - name
+          properties:
+            name:
+              type: string
+              description: Название факультета
+              example: "Факультет информационных технологий"
+            description:
+              type: string
+              description: Описание факультета
+              example: "Факультет подготовки специалистов в области IT"
+    responses:
+      201:
+        description: Факультет успешно создан
+        schema:
+          type: object
+          properties:
+            success:
+              type: boolean
+              example: true
+            data:
+              type: object
+              properties:
+                id:
+                  type: string
+                name:
+                  type: string
+                description:
+                  type: string
+                createdAt:
+                  type: string
+                  format: date-time
+      400:
+        description: Факультет с таким названием уже существует или ошибка валидации
+      401:
+        description: Не авторизован
+      403:
+        description: Доступ запрещен (только для администраторов)
+    """
+    # Check if faculty already exists
+    existing_faculty = Faculty.query.filter_by(name=data['name']).first()
+    if existing_faculty:
+        return error_response('FACULTY_EXISTS', 'Faculty with this name already exists', status_code=400)
+    
+    faculty = Faculty(
+        name=data['name'],
+        description=data.get('description')
+    )
+    
+    db.session.add(faculty)
+    db.session.commit()
+    
+    return success_response(faculty.to_dict(), status_code=201)
+
+@dictionaries_bp.route('/faculties/<faculty_id>', methods=['PUT'])
+@jwt_required()
+@role_required('admin')
+@validate_json_data()
+def update_faculty(current_user, data, faculty_id):
+    """Update a faculty (Admin only)
+    ---
+    tags:
+      - Dictionaries
+    summary: Обновить факультет (для администраторов)
+    description: Обновляет данные существующего факультета
+    security:
+      - Bearer: []
+    parameters:
+      - in: path
+        name: faculty_id
+        type: string
+        required: true
+        description: ID факультета
+      - in: body
+        name: faculty_data
+        description: Новые данные факультета
+        required: true
+        schema:
+          type: object
+          properties:
+            name:
+              type: string
+              description: Название факультета
+              example: "Новое название факультета"
+            description:
+              type: string
+              description: Описание факультета
+              example: "Обновленное описание факультета"
+    responses:
+      200:
+        description: Факультет успешно обновлен
+        schema:
+          type: object
+          properties:
+            success:
+              type: boolean
+              example: true
+            data:
+              type: object
+              properties:
+                id:
+                  type: string
+                name:
+                  type: string
+                description:
+                  type: string
+                createdAt:
+                  type: string
+                  format: date-time
+      400:
+        description: Факультет с таким названием уже существует или ошибка валидации
+      401:
+        description: Не авторизован
+      403:
+        description: Доступ запрещен (только для администраторов)
+      404:
+        description: Факультет не найден
+    """
+    faculty = Faculty.query.get(faculty_id)
+    if not faculty:
+        return error_response('FACULTY_NOT_FOUND', 'Faculty not found', status_code=404)
+    
+    # Check if new name already exists (if name is being changed)
+    if 'name' in data and data['name'] != faculty.name:
+        existing_faculty = Faculty.query.filter_by(name=data['name']).first()
+        if existing_faculty:
+            return error_response('FACULTY_EXISTS', 'Faculty with this name already exists', status_code=400)
+        faculty.name = data['name']
+    
+    # Update description if provided
+    if 'description' in data:
+        faculty.description = data['description']
+    
+    db.session.commit()
+    
+    return success_response(faculty.to_dict())
+
+@dictionaries_bp.route('/faculties/<faculty_id>', methods=['DELETE'])
+@jwt_required()
+@role_required('admin')
+def delete_faculty(current_user, faculty_id):
+    """Delete a faculty (Admin only)
+    ---
+    tags:
+      - Dictionaries
+    summary: Удалить факультет (для администраторов)
+    description: Удаляет факультет из системы. Внимание! Это также удалит все направления, связанные с этим факультетом.
+    security:
+      - Bearer: []
+    parameters:
+      - in: path
+        name: faculty_id
+        type: string
+        required: true
+        description: ID факультета
+    responses:
+      200:
+        description: Факультет успешно удален
+        schema:
+          type: object
+          properties:
+            success:
+              type: boolean
+              example: true
+            message:
+              type: string
+              example: "Faculty deleted successfully"
+      401:
+        description: Не авторизован
+      403:
+        description: Доступ запрещен (только для администраторов)
+      404:
+        description: Факультет не найден
+    """
+    faculty = Faculty.query.get(faculty_id)
+    if not faculty:
+        return error_response('FACULTY_NOT_FOUND', 'Faculty not found', status_code=404)
+    
+    # The cascade='all, delete-orphan' in the Faculty model will automatically delete related directions
+    db.session.delete(faculty)
+    db.session.commit()
+    
+    return success_response({'message': 'Faculty deleted successfully'})
