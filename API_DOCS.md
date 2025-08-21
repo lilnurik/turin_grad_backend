@@ -185,6 +185,9 @@ Turin Grad Hub API теперь включает интерактивную до
 
 ### Справочники
 - `GET /api/dictionaries/faculties` - Факультеты
+- `POST /api/dictionaries/faculties` - Создать факультет (admin)
+- `PUT /api/dictionaries/faculties/:id` - Обновить факультет (admin)
+- `DELETE /api/dictionaries/faculties/:id` - Удалить факультет (admin)
 - `GET /api/dictionaries/directions` - Направления
 - `GET /api/dictionaries/companies` - Компании
 - `POST /api/dictionaries/companies` - Добавить компанию
@@ -273,7 +276,7 @@ curl -X PATCH http://127.0.0.1:5000/api/admin/users/<user_id>/verify \
 - Email верификация
 - Административное одобрение
 - Профили пользователей
-- Справочные данные
+- Справочные данные (включая CRUD для факультетов)
 - Поиск
 - Уведомления
 - Журнал активности
