@@ -144,14 +144,36 @@ Turin Grad Hub API теперь включает интерактивную до
 - `POST /api/auth/verify-email` - Верификация email
 
 ### Администрирование
-- `GET /api/admin/users` - Список пользователей
-- `GET /api/admin/users/:id` - Информация о пользователе
-- `POST /api/admin/users` - Создание пользователя
-- `PUT /api/admin/users/:id` - Обновление пользователя
-- `DELETE /api/admin/users/:id` - Удаление пользователя
-- `PATCH /api/admin/users/:id/verify` - Верификация пользователя
-- `PATCH /api/admin/users/:id/block` - Блокировка пользователя
+- `GET /api/admin/users` - Список всех пользователей (только просмотр)
 - `GET /api/admin/activity-logs` - Журнал активности
+- `GET /api/admin/graduating-students` - Студенты готовые к выпуску
+- `GET /api/admin/graduation-statistics` - Статистика по выпускникам
+- `POST /api/admin/students/{id}/confirm-graduation` - Подтвердить выпуск студента
+- `POST /api/admin/students/{id}/revert-graduation` - Отменить выпуск студента
+- `PUT /api/admin/students/{id}/graduation-info` - Обновить информацию об обучении
+
+### Управление студентами (Админ)
+- `GET /api/admin/students` - Список студентов с фильтрацией
+- `POST /api/admin/students` - Создание студента
+- `GET /api/admin/students/{id}` - Информация о студенте
+- `PUT /api/admin/students/{id}` - Обновление студента
+- `DELETE /api/admin/students/{id}` - Удаление студента
+- `PATCH /api/admin/students/{id}/verify` - Верификация студента
+- `PATCH /api/admin/students/{id}/block` - Блокировка студента
+
+### Управление преподавателями (Админ)
+- `GET /api/admin/teachers` - Список преподавателей с фильтрацией
+- `POST /api/admin/teachers` - Создание преподавателя
+- `GET /api/admin/teachers/{id}` - Информация о преподавателе
+- `PUT /api/admin/teachers/{id}` - Обновление преподавателя
+- `DELETE /api/admin/teachers/{id}` - Удаление преподавателя
+- `PATCH /api/admin/teachers/{id}/verify` - Верификация преподавателя
+- `PATCH /api/admin/teachers/{id}/block` - Блокировка преподавателя
+
+### Назначения преподавателей (Админ)
+- `GET /api/admin/teachers/{id}/students` - Студенты преподавателя
+- `POST /api/admin/teachers/{id}/students` - Назначить студентов преподавателю
+- `DELETE /api/admin/teachers/{id}/students/{student_id}` - Убрать студента у преподавателя
 
 ### Профиль
 - `GET /api/profile` - Получить профиль
